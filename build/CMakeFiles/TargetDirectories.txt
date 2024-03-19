@@ -1,6 +1,0 @@
-C:/Users/User/Projects/TungstenBeta/build/CMakeFiles/TungstenBetaDebug.dir
-C:/Users/User/Projects/TungstenBeta/build/CMakeFiles/edit_cache.dir
-C:/Users/User/Projects/TungstenBeta/build/CMakeFiles/rebuild_cache.dir
-C:/Users/User/Projects/TungstenBeta/build/TungstenBeta/CMakeFiles/TungstenBeta.dir
-C:/Users/User/Projects/TungstenBeta/build/TungstenBeta/CMakeFiles/edit_cache.dir
-C:/Users/User/Projects/TungstenBeta/build/TungstenBeta/CMakeFiles/rebuild_cache.dir
