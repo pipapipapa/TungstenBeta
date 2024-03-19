@@ -1,0 +1,14 @@
+[
+{
+  "directory": "C:/Users/User/Projects/TungstenBeta/build",
+  "command": "C:\\msys64\\mingw64\\bin\\g++.exe   -g -o CMakeFiles\\TungstenBetaDebug.dir\\main.cpp.obj -c C:\\Users\\User\\Projects\\TungstenBeta\\main.cpp",
+  "file": "C:/Users/User/Projects/TungstenBeta/main.cpp",
+  "output": "CMakeFiles/TungstenBetaDebug.dir/main.cpp.obj"
+},
+{
+  "directory": "C:/Users/User/Projects/TungstenBeta/build/TungstenBeta",
+  "command": "C:\\msys64\\mingw64\\bin\\g++.exe   -g -o CMakeFiles\\TungstenBeta.dir\\TungstenBeta.cpp.obj -c C:\\Users\\User\\Projects\\TungstenBeta\\TungstenBeta\\TungstenBeta.cpp",
+  "file": "C:/Users/User/Projects/TungstenBeta/TungstenBeta/TungstenBeta.cpp",
+  "output": "TungstenBeta/CMakeFiles/TungstenBeta.dir/TungstenBeta.cpp.obj"
+}
+]
