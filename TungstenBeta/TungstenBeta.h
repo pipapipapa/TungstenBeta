@@ -93,11 +93,11 @@ namespace ElementaryFunctions{
         Expression* input_;
 
     public:
-        ElementaryFunction() = default;
-        ~ElementaryFunction() = default;
+        ElementaryFunction();
+        ~ElementaryFunction();
 
-        virtual Expression* derivative() const;
-        virtual Expression* get_input() const;
+        virtual Expression* derivative() const = 0;
+        virtual Expression* get_input() const = 0;
 
         Expression* complex_derivative() const override;
     };

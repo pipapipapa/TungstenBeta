@@ -146,6 +146,9 @@ namespace ElementaryFunctions{
         return new operators::Product({this->complex_derivative(), (this->get_input())->complex_derivative()});
     }
 
+    ElementaryFunction::ElementaryFunction() = default;
+    ElementaryFunction::~ElementaryFunction() = default;
+
 
     // Power
     Power::Power(Expression* base, Expression* power){
