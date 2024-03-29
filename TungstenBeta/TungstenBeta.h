@@ -1,13 +1,19 @@
+#ifndef TUNGSTENBETA_H
+#define TUNGSTENBETA_H
+
 #include <iostream>
 #include <vector>
-
+#include <string>
+#include <cmath>
+#include <numeric>
 
 class Expression{
 public:
-    virtual double getValue() const = 0;
-    virtual Expression* derivative() const = 0;
+    virtual double get_value() const = 0;
+    virtual Expression* complex_derivative() const = 0;
+    virtual Expression* copy() const = 0;
+    virtual std::string to_string() const = 0;
     virtual ~Expression() = default;
-
 
     friend Expression* operator+(const Expression& lhs, const Expression& rhs);
     friend Expression* operator-(const Expression& lhs, const Expression& rhs);
@@ -18,193 +24,145 @@ public:
 
 namespace operators{
     class Sum : public Expression{
-        private:
-            std::vector<Expression*> terms_;
-        public:
-            Sum(std::vector<Expression*>&& terms) : terms_(std::move(terms)){}
-            ~Sum(){
-                for (Expression* term : terms_){
-                    delete term;
-                }
-            }
+    private:
+        std::vector<Expression*> terms_;
 
-            double getValue() const override{
-            double result = 0;
-            for (const Expression* term : terms_){
-                result += term->getValue();
-            }
-            return result;
-            }
+    public:
+        Sum(std::vector<Expression*>&& terms);
+        ~Sum();
 
-            Expression* derivative() const override{
-                std::vector<Expression*> derivedTerms;
-                for (const Expression* term : terms_){
-                    derivedTerms.push_back(term->derivative());
-                }
-                return new Sum(std::move(derivedTerms));
-            }
-        };
-
-
-    
-    class Product : public Expression{
-        private:
-            std::vector<Expression*> factors_;
-        public:
-            Product(std::vector<Expression*>&& factors) : factors_(std::move(factors)){}
-            ~Product(){
-                for (Expression* factor : factors_){
-                    delete factor;
-                }
-            }
-
-            double getValue() const override {
-                double result = 1;
-                for (const Expression* factor : factors_) {
-                    result *= factor->getValue();
-                }
-                return result;
-            }
-
-
-            Sum derivative(){
-                return lhs_.complex_derivative() * rhs_ + rhs_.complex_derivative() * lhs;
-            }
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
     };
 
 
-    
+    class Product : public Expression{
+    private:
+        std::vector<Expression*> factors_;
+
+    public:
+        Product(std::vector<Expression*>&& factors);
+        ~Product();
+
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
+    };
+
+
     class Fraction : public Expression{
-        private:
+    private:
         Expression* dividend_;
         Expression* divisor_;
-        public:
-            Fraction derivative(){
-                return Fraction(Sum(Product(dividend_.complex_derivative(), divisor_) - Product(divisor_.complex_derivative(), dividend_)), ElementaryFunctions::Power3(divisor_, 2));
-            }
+
+    public:
+        Fraction(Expression* dividend, Expression* divisor);
+        ~Fraction();
+
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
     };
-};
+}
 
 
 class Constant : public Expression{
-    public:
-        static const double e = 2.718281828459045;
-        static const double pi = 3.141592653589793;
-        int value_;
+public:
+    static const double e;
+    static const double pi;
 
-        Constant(int value){
-            value_ = value;
-        }
+    Constant(int value);
 
-        Constant derivative(){
-            return Constant(0);
-        }
+    double get_value() const override;
+    Expression* complex_derivative() const override;
+    Expression* copy() const override;
+    std::string to_string() const override;
+
+private:
+    int value_;
 };
+
 
 namespace ElementaryFunctions{
-
     class ElementaryFunction : public Expression{
-        private:
-            Expression* input_;
-        public:
-            Expression* complex_derivative(){
-                return this->derivative() * (this->get_input()).complex_derivative();
-            }
+    protected:
+        Expression* input_;
+
+    public:
+        ElementaryFunction() = default;
+        ~ElementaryFunction() = default;
+
+        virtual Expression* derivative() const;
+        virtual Expression* get_input() const;
+
+        Expression* complex_derivative() const override;
     };
 
 
+    class Power : public ElementaryFunction{
+    private:
+        Expression* base_;
+        Expression* power_;
 
+    public:
+        Power(Expression* base, Expression* power);
 
-    class Power : public ElementaryFunction, public Expression{
-        private:
-            Expression* base_;
-            Expression* power_;
+        // elementary function
+        Expression* derivative() const override;
+        Expression* get_input() const override;
 
-            Expression* derivative(){
-                if (power_ == 1){
-                    return Constant(1);
-                }
-                else{
-                    return power_ * Power(base_, power_ - 1);
-                }
-            }
-        public:
-            Power(Expression*& base, Expression* power){
-                base_ = base;
-                power_ = power;
-            }
-
-            Expression* get_input(){
-                return base_;
-            }
-
-        
-    };
-
-    class Exp : public ElementaryFunction, public Expression{
-        private:
-            Expression* power_;
-            Expression* base_;
-
-            Expression* derivative(){
-                return Log(power_) * Exp(base_, power_);
-            }
-        public:
-            Exp(Constant base, Expression*& power){
-                base_ = base;
-                power_ = power;
-            }
-
-            Expression* get_input(){
-                return power_;
-            }
-
-
+        // expression
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
     };
 
 
-    class Log : public ElementaryFunction, public Expression{
-        private:
-            Expression* base_;
-            Expression* arg_;
+    class Exp : public ElementaryFunction{
+    private:
+        Expression* power_;
+        Expression* base_;
 
-            Expression* derivative(){
-                return Constant(1) / operators::Product(arg_, Log(Constant::e, base_));
-            }
-        public:
-            Log(Expression*& base, Expression*& arg){
-                base_ = base;
-                arg_ = arg;
-            }
+    public:
+        Exp(Expression* base, Expression* power);
 
-            Expression* get_input(){
-                return arg_;
-            }
+        // elementary function
+        Expression* derivative() const override;
+        Expression* get_input() const override;
+
+        // expression
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
     };
-};
 
 
+    class Log : public ElementaryFunction{
+    private:
+        Expression* base_;
+        Expression* arg_;
 
+    public:
+        Log(Expression* base, Expression* arg);
 
+        // elementary function
+        Expression* derivative() const override;
+        Expression* get_input() const override;
 
-
-
-
-Expression* operator+(Expression* lhs, Expressio* rhs){
-    return new operators::Sum(lhs, rhs);
+        // expression
+        double get_value() const override;
+        Expression* complex_derivative() const override;
+        Expression* copy() const override;
+        std::string to_string() const override;
+    };
 }
 
+Expression* double_to_fraction(double value);
 
-Expression* operator-(Expression* lhs, Expression* rhs){
-    return new operators::Sum(lhs, operators::Product(-1, rhs));
-}
-
-
-Expression* operator*(Expression* lhs, Expression* rhs){
-    return new operators::Product(lhs, rhs);
-}
-
-
-Expression* operator/(Expression* lhs, Expression* rhs){
-    return new operators::Fraction(lhs, rhs);
-}   
+#endif // TUNGSTENBETA_H
