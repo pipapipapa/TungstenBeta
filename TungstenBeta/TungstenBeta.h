@@ -12,7 +12,7 @@ public:
     virtual double get_value() const = 0;
     virtual Expression* complex_derivative() const = 0;
     virtual Expression* copy() const = 0;
-    virtual std::string to_string() const = 0;
+    //virtual std::string to_string() const = 0;
     virtual ~Expression() = default;
 
     friend Expression* operator+(const Expression& lhs, const Expression& rhs);
@@ -34,7 +34,7 @@ namespace operators{
         double get_value() const override;
         Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 
 
@@ -49,7 +49,7 @@ namespace operators{
         double get_value() const override;
         Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 
 
@@ -65,7 +65,7 @@ namespace operators{
         double get_value() const override;
         Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 }
 
@@ -80,7 +80,7 @@ public:
     double get_value() const override;
     Expression* complex_derivative() const override;
     Expression* copy() const override;
-    std::string to_string() const override;
+    //std::string to_string() const override;
 
 private:
     int value_;
@@ -117,9 +117,8 @@ namespace ElementaryFunctions{
 
         // expression
         double get_value() const override;
-        Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 
 
@@ -137,9 +136,8 @@ namespace ElementaryFunctions{
 
         // expression
         double get_value() const override;
-        Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 
 
@@ -157,9 +155,8 @@ namespace ElementaryFunctions{
 
         // expression
         double get_value() const override;
-        Expression* complex_derivative() const override;
         Expression* copy() const override;
-        std::string to_string() const override;
+        //std::string to_string() const override;
     };
 }
 

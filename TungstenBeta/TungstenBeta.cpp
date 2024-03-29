@@ -14,6 +14,14 @@ namespace operators{
         }
     }
 
+    Expression* Sum::copy() const{
+        std::vector<Expression*> clonedTerms;
+        for (const Expression* term : terms_) {
+            clonedTerms.push_back(term->copy());
+        }
+        return new Sum(std::move(clonedTerms));
+    }
+
     double Sum::get_value() const{
         double result = 0;
 
@@ -44,6 +52,14 @@ namespace operators{
         for (Expression* factor : factors_){
             delete factor;
         }
+    }
+
+    Expression* Product::copy() const{
+        std::vector<Expression*> clonedFactors;
+        for (const Expression* factor : factors_) {
+            clonedFactors.push_back(factor->copy());
+        }
+        return new Product(std::move(clonedFactors));
     }
 
     double Product::get_value() const{
@@ -89,6 +105,10 @@ namespace operators{
         return dividend_->get_value() / divisor_->get_value();
     }
 
+    Expression* Fraction::copy() const{
+        return new Fraction(dividend_->copy(), divisor_->copy());
+    }
+
     Expression* Fraction::complex_derivative() const{
         Expression* numerator = new Sum({
             new Product({dividend_->complex_derivative(), divisor_->copy()}),
@@ -113,6 +133,10 @@ double Constant::get_value() const{
     return value_;
 }
 
+Expression* Constant::copy() const{
+        return new Constant(value_);
+}
+
 Expression* Constant::complex_derivative() const{
     return new Constant(0);
 }
@@ -131,6 +155,10 @@ namespace ElementaryFunctions{
 
     double Power::get_value() const{
         return std::pow(base_->get_value(), power_->get_value());
+    }
+
+    Expression* Power::copy() const{
+        return new Power(input_->copy(), power_);
     }
 
     Expression* Power::derivative() const{
@@ -161,6 +189,10 @@ namespace ElementaryFunctions{
         return std::exp(power_->get_value() * std::log(base_->get_value()));
     }
 
+    Expression* Exp::copy() const{
+        return new Exp(power_->copy(), base_);
+    }
+
     Expression* Exp::derivative() const{
         return new operators::Product({
                 new Exp(power_->copy(), base_),
@@ -181,6 +213,10 @@ namespace ElementaryFunctions{
 
     double Log::get_value() const{
         return std::log(arg_->get_value()) / std::log(base_->get_value());
+    }
+
+    Expression* Log::copy() const{
+        return new Log(arg_->copy(), base_);
     }
 
     Expression* Log::derivative() const{
