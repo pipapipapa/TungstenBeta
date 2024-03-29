@@ -143,20 +143,13 @@ Expression* Constant::complex_derivative(const std::string& variable) const{
 
 
 // Variable
-Variable::Variable(const std::string& name, double value){
+Variable::Variable(const std::string& name){
     name_ = name;
-    value_ = value;
 }
 
 double Variable::get_value() const{
     auto it = Variable::variables.find(name_);
-
-    if (it != Variable::variables.end()){
-        return it->second;
-    }
-    else{
-        return value_;
-    }
+    return it->second->get_value();
 }
 
 Expression* Variable::complex_derivative(const std::string& variable) const{
@@ -169,7 +162,7 @@ Expression* Variable::complex_derivative(const std::string& variable) const{
 }
 
 Expression* Variable::copy() const{
-    return new Variable(name_, value_);
+    return new Variable(name_);
 }
 //std::string Variable::toString() const override{ return name_; }
 
@@ -301,4 +294,4 @@ Expression* double_to_fraction(double value){
     return new operators::Fraction(new Constant(numerator), new Constant(denominator));
 }
 
-std::unordered_map<std::string, double> Variable::variables;
+std::unordered_map<std::string, Expression*> Variable::variables;
