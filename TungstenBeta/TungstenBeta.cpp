@@ -42,6 +42,16 @@ namespace operators{
         return new Sum(std::move(derivedTerms));
     }
 
+    std::string Sum::to_string() const{
+        std::string s;
+        s = "(" + terms_[0]->to_string();
+        for (int i = 1; i < terms_.size(); ++i) {
+            s += " + " + terms_[i]->to_string();
+        }
+        s = s + ")";
+        return s;
+    }
+
 
     // Product
     Product::Product(std::vector<Expression*>&& factors){
@@ -89,6 +99,15 @@ namespace operators{
         return new Sum(std::move(derivedFactors));
     }
 
+    std::string Product::to_string() const{
+            std::string s;
+            s = factors_[0]->to_string();
+            for (size_t i = 1; i < factors_.size(); ++i) {
+                s += " * " + factors_[i]->to_string();
+            }
+            return s;
+        }
+
 
     // Fraction
     Fraction::Fraction(Expression* dividend, Expression* divisor){
@@ -118,6 +137,12 @@ namespace operators{
         Expression* denominator = new Product({divisor_->copy(), divisor_->copy()});
         return new Fraction(numerator, denominator);
     }
+
+    std::string Fraction::to_string() const{
+            std::string s;
+            s = "(" + dividend_->to_string() + ")" + " / " + divisor_->to_string() + ")";
+            return s;
+        }
 };
 
 
@@ -141,6 +166,10 @@ Expression* Constant::complex_derivative(const std::string& variable) const{
     return new Constant(0);
 }
 
+std::string Constant::to_string() const{
+    return std::to_string(value_);
+    }
+
 
 // Variable
 Variable::Variable(const std::string& name){
@@ -149,7 +178,12 @@ Variable::Variable(const std::string& name){
 
 double Variable::get_value() const{
     auto it = Variable::variables.find(name_);
-    return it->second->get_value();
+    if (it != variables.end()){
+        return it->second->get_value();
+    }
+    else{
+        return 0;
+    }
 }
 
 Expression* Variable::complex_derivative(const std::string& variable) const{
@@ -164,7 +198,10 @@ Expression* Variable::complex_derivative(const std::string& variable) const{
 Expression* Variable::copy() const{
     return new Variable(name_);
 }
-//std::string Variable::toString() const override{ return name_; }
+
+std::string Variable::to_string() const{
+    return name_;
+}
 
 
 namespace ElementaryFunctions{
@@ -207,6 +244,17 @@ namespace ElementaryFunctions{
         return base_;
     }
 
+    std::string Power::to_string() const{
+        std::string s;
+        if (power_->get_value() == 1){
+            s = base_->to_string();
+        }
+        else{
+            s = "(" + base_->to_string() + "^" + power_->to_string() + ")";
+        }
+        return s;
+    }
+
 
     // Exponent
     Exp::Exp(Expression* base, Expression* power){
@@ -231,6 +279,12 @@ namespace ElementaryFunctions{
 
     Expression* Exp::get_input() const{
         return power_;
+    }
+
+    std::string Exp::to_string() const{
+        std::string s;
+        s = base_->to_string() + "^(" + input_->to_string() + ")";
+        return s;
     }
 
 
@@ -259,6 +313,12 @@ namespace ElementaryFunctions{
 
     Expression* Log::get_input() const{
         return arg_;
+    }
+
+    std::string Log::to_string() const{
+        std::string s;
+        s = "log[" + base_->to_string() + ", " + input_->to_string() + "]";
+        return s;
     }
 };
 
