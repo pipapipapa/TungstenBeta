@@ -92,8 +92,9 @@ namespace operators{
                 }
             }
 
+            otherFactors.push_back(factors_[i]->complex_derivative(variable));
             Expression* productTerm = new Product(std::move(otherFactors));
-            derivedFactors.push_back(new Product({productTerm, factors_[i]->complex_derivative(variable)}));
+            derivedFactors.push_back(productTerm);
         }
 
         return new Sum(std::move(derivedFactors));
@@ -140,7 +141,7 @@ namespace operators{
 
     std::string Fraction::to_string() const{
             std::string s;
-            s = "(" + dividend_->to_string() + ")" + " / " + divisor_->to_string() + ")";
+            s = "(" + dividend_->to_string() + ")" + " / " + "(" + divisor_->to_string() + ")";
             return s;
         }
 };
@@ -206,7 +207,7 @@ std::string Variable::to_string() const{
 
 namespace ElementaryFunctions{
     Expression* ElementaryFunction::complex_derivative(const std::string& variable) const{
-        return new operators::Product({this->complex_derivative(variable), (this->get_input())->complex_derivative(variable)});
+        return new operators::Product({this->derivative(variable), (this->get_input())->complex_derivative(variable)});
     }
 
     ElementaryFunction::ElementaryFunction() = default;
@@ -224,7 +225,7 @@ namespace ElementaryFunctions{
     }
 
     Expression* Power::copy() const{
-        return new Power(input_->copy(), power_);
+        return new Power(base_->copy(), power_);
     }
 
     Expression* Power::derivative(const std::string& variable) const{
@@ -283,7 +284,7 @@ namespace ElementaryFunctions{
 
     std::string Exp::to_string() const{
         std::string s;
-        s = base_->to_string() + "^(" + input_->to_string() + ")";
+        s = base_->to_string() + "^(" + power_->to_string() + ")";
         return s;
     }
 
@@ -317,7 +318,7 @@ namespace ElementaryFunctions{
 
     std::string Log::to_string() const{
         std::string s;
-        s = "log[" + base_->to_string() + ", " + input_->to_string() + "]";
+        s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
         return s;
     }
 };
