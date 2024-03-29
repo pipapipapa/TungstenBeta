@@ -11,61 +11,61 @@
 class Expression{
 public:
     virtual double get_value() const = 0;
-    virtual Expression* complex_derivative(const std::string& variable) const = 0;
-    virtual Expression* copy() const = 0;
+    virtual const Expression* complex_derivative(const std::string& variable) const = 0;
+    virtual const Expression* copy() const = 0;
     virtual std::string to_string() const = 0;
     virtual ~Expression() = default;
 
-    friend Expression* operator+(const Expression& lhs, const Expression& rhs);
-    friend Expression* operator-(const Expression& lhs, const Expression& rhs);
-    friend Expression* operator*(const Expression& lhs, const Expression& rhs);
-    friend Expression* operator/(const Expression& lhs, const Expression& rhs);
+    friend const Expression* operator+(const Expression& lhs, const Expression& rhs);
+    friend const Expression* operator-(const Expression& lhs, const Expression& rhs);
+    friend const Expression* operator*(const Expression& lhs, const Expression& rhs);
+    friend const Expression* operator/(const Expression& lhs, const Expression& rhs);
 };
 
 
 namespace operators{
     class Sum : public Expression{
     private:
-        std::vector<Expression*> terms_;
+        std::vector<const Expression*> terms_;
 
     public:
-        Sum(std::vector<Expression*>&& terms);
+        Sum(std::vector<const Expression*>&& terms);
         ~Sum();
 
         double get_value() const override;
-        Expression* complex_derivative(const std::string& variable) const override;
-        Expression* copy() const override;
+        const Expression* complex_derivative(const std::string& variable) const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 
 
     class Product : public Expression{
     private:
-        std::vector<Expression*> factors_;
+        std::vector<const Expression*> factors_;
 
     public:
-        Product(std::vector<Expression*>&& factors);
+        Product(std::vector<const Expression*>&& factors);
         ~Product();
 
         double get_value() const override;
-        Expression* complex_derivative(const std::string& variable) const override;
-        Expression* copy() const override;
+        const Expression* complex_derivative(const std::string& variable) const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 
 
     class Fraction : public Expression{
     private:
-        Expression* dividend_;
-        Expression* divisor_;
+        const Expression* dividend_;
+        const Expression* divisor_;
 
     public:
-        Fraction(Expression* dividend, Expression* divisor);
+        Fraction(const Expression* dividend, const Expression* divisor);
         ~Fraction();
 
         double get_value() const override;
-        Expression* complex_derivative(const std::string& variable) const override;
-        Expression* copy() const override;
+        const Expression* complex_derivative(const std::string& variable) const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 }
@@ -75,12 +75,14 @@ class Constant : public Expression{
 public:
     static const double e;
     static const double pi;
+    static const Expression* ZERO;
+    static const Expression* ONE;
 
     Constant(int value);
 
     double get_value() const override;
-    Expression* complex_derivative(const std::string& variable) const override;
-    Expression* copy() const override;
+    const Expression* complex_derivative(const std::string& variable) const override;
+    const Expression* copy() const override;
     std::string to_string() const override;
 
 private:
@@ -91,15 +93,15 @@ private:
 class Variable : public Expression{
 public:
     // Список(словарь) всех переменных и их значений
-    static std::unordered_map<std::string, Expression*> variables;
+    static std::unordered_map<std::string, const Expression*> variables;
 
     Variable(const std::string& name);
 
     double get_value() const override;
 
-    Expression* complex_derivative(const std::string& variable) const override;
+    const Expression* complex_derivative(const std::string& variable) const override;
 
-    Expression* copy() const override;
+    const Expression* copy() const override;
     std::string to_string() const override;
 
     private:
@@ -110,76 +112,76 @@ public:
 namespace ElementaryFunctions{
     class ElementaryFunction : public Expression{
     protected:
-        Expression* input_;
+        const Expression* input_;
 
     public:
         ElementaryFunction();
         ~ElementaryFunction();
 
-        virtual Expression* derivative(const std::string& variable) const = 0;
-        virtual Expression* get_input() const = 0;
+        virtual const Expression* derivative(const std::string& variable) const = 0;
+        virtual const Expression* get_input() const = 0;
 
-        Expression* complex_derivative(const std::string& variable) const override;
+        const Expression* complex_derivative(const std::string& variable) const override;
     };
 
 
     class Power : public ElementaryFunction{
     private:
-        Expression* base_;
-        Expression* power_;
+        const Expression* base_;
+        const Expression* power_;
 
     public:
-        Power(Expression* base, Expression* power);
+        Power(const Expression* base, const Expression* power);
 
         // elementary function
-        Expression* derivative(const std::string& variable) const override;
-        Expression* get_input() const override;
+        const Expression* derivative(const std::string& variable) const override;
+        const Expression* get_input() const override;
 
         // expression
         double get_value() const override;
-        Expression* copy() const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 
 
     class Exp : public ElementaryFunction{
     private:
-        Expression* power_;
-        Expression* base_;
+        const Expression* power_;
+        const Expression* base_;
 
     public:
-        Exp(Expression* base, Expression* power);
+        Exp(const Expression* base, const Expression* power);
 
         // elementary function
-        Expression* derivative(const std::string& variable) const override;
-        Expression* get_input() const override;
+        const Expression* derivative(const std::string& variable) const override;
+        const Expression* get_input() const override;
 
         // expression
         double get_value() const override;
-        Expression* copy() const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 
 
     class Log : public ElementaryFunction{
     private:
-        Expression* base_;
-        Expression* arg_;
+        const Expression* base_;
+        const Expression* arg_;
 
     public:
-        Log(Expression* base, Expression* arg);
+        Log(const Expression* base, const Expression* arg);
 
         // elementary function
-        Expression* derivative(const std::string& variable) const override;
-        Expression* get_input() const override;
+        const Expression* derivative(const std::string& variable) const override;
+        const Expression* get_input() const override;
 
         // expression
         double get_value() const override;
-        Expression* copy() const override;
+        const Expression* copy() const override;
         std::string to_string() const override;
     };
 }
 
-Expression* double_to_fraction(double value);
+const Expression* double_to_fraction(double value);
 
 #endif // TUNGSTENBETA_H
