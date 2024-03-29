@@ -6,11 +6,12 @@
 #include <string>
 #include <cmath>
 #include <numeric>
+#include <unordered_map>
 
 class Expression{
 public:
     virtual double get_value() const = 0;
-    virtual Expression* complex_derivative() const = 0;
+    virtual Expression* complex_derivative(const std::string& variable) const = 0;
     virtual Expression* copy() const = 0;
     //virtual std::string to_string() const = 0;
     virtual ~Expression() = default;
@@ -32,7 +33,7 @@ namespace operators{
         ~Sum();
 
         double get_value() const override;
-        Expression* complex_derivative() const override;
+        Expression* complex_derivative(const std::string& variable) const override;
         Expression* copy() const override;
         //std::string to_string() const override;
     };
@@ -47,7 +48,7 @@ namespace operators{
         ~Product();
 
         double get_value() const override;
-        Expression* complex_derivative() const override;
+        Expression* complex_derivative(const std::string& variable) const override;
         Expression* copy() const override;
         //std::string to_string() const override;
     };
@@ -63,7 +64,7 @@ namespace operators{
         ~Fraction();
 
         double get_value() const override;
-        Expression* complex_derivative() const override;
+        Expression* complex_derivative(const std::string& variable) const override;
         Expression* copy() const override;
         //std::string to_string() const override;
     };
@@ -78,12 +79,31 @@ public:
     Constant(int value);
 
     double get_value() const override;
-    Expression* complex_derivative() const override;
+    Expression* complex_derivative(const std::string& variable) const override;
     Expression* copy() const override;
     //std::string to_string() const override;
 
 private:
     int value_;
+};
+
+
+class Variable : public Expression{
+public:
+    static std::unordered_map<std::string, double> variables;
+
+    Variable(const std::string& name, double value = 0.0);
+
+    double get_value() const override;
+
+    Expression* complex_derivative(const std::string& variable) const override;
+
+    Expression* copy() const override;
+    //std::string to_string() const override;
+
+    private:
+    std::string name_;
+    double value_;
 };
 
 
@@ -96,10 +116,10 @@ namespace ElementaryFunctions{
         ElementaryFunction();
         ~ElementaryFunction();
 
-        virtual Expression* derivative() const = 0;
+        virtual Expression* derivative(const std::string& variable) const = 0;
         virtual Expression* get_input() const = 0;
 
-        Expression* complex_derivative() const override;
+        Expression* complex_derivative(const std::string& variable) const override;
     };
 
 
@@ -112,7 +132,7 @@ namespace ElementaryFunctions{
         Power(Expression* base, Expression* power);
 
         // elementary function
-        Expression* derivative() const override;
+        Expression* derivative(const std::string& variable) const override;
         Expression* get_input() const override;
 
         // expression
@@ -131,7 +151,7 @@ namespace ElementaryFunctions{
         Exp(Expression* base, Expression* power);
 
         // elementary function
-        Expression* derivative() const override;
+        Expression* derivative(const std::string& variable) const override;
         Expression* get_input() const override;
 
         // expression
@@ -150,7 +170,7 @@ namespace ElementaryFunctions{
         Log(Expression* base, Expression* arg);
 
         // elementary function
-        Expression* derivative() const override;
+        Expression* derivative(const std::string& variable) const override;
         Expression* get_input() const override;
 
         // expression

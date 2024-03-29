@@ -16,7 +16,7 @@ namespace operators{
 
     Expression* Sum::copy() const{
         std::vector<Expression*> clonedTerms;
-        for (const Expression* term : terms_) {
+        for (const Expression* term : terms_){
             clonedTerms.push_back(term->copy());
         }
         return new Sum(std::move(clonedTerms));
@@ -32,11 +32,11 @@ namespace operators{
         return result;
     }
 
-    Expression* Sum::complex_derivative() const{
+    Expression* Sum::complex_derivative(const std::string& variable) const{
         std::vector<Expression*> derivedTerms;
 
         for (const Expression* term : terms_){
-            derivedTerms.push_back(term->complex_derivative());
+            derivedTerms.push_back(term->complex_derivative(variable));
         }
 
         return new Sum(std::move(derivedTerms));
@@ -56,7 +56,7 @@ namespace operators{
 
     Expression* Product::copy() const{
         std::vector<Expression*> clonedFactors;
-        for (const Expression* factor : factors_) {
+        for (const Expression* factor : factors_){
             clonedFactors.push_back(factor->copy());
         }
         return new Product(std::move(clonedFactors));
@@ -70,7 +70,7 @@ namespace operators{
         return result;
     }
 
-    Expression* Product::complex_derivative() const{
+    Expression* Product::complex_derivative(const std::string& variable) const{
         std::vector<Expression*> derivedFactors;
         
         for (int i = 0; i < factors_.size(); ++i){
@@ -83,7 +83,7 @@ namespace operators{
             }
 
             Expression* productTerm = new Product(std::move(otherFactors));
-            derivedFactors.push_back(new Product({productTerm, factors_[i]->complex_derivative()}));
+            derivedFactors.push_back(new Product({productTerm, factors_[i]->complex_derivative(variable)}));
         }
 
         return new Sum(std::move(derivedFactors));
@@ -109,10 +109,10 @@ namespace operators{
         return new Fraction(dividend_->copy(), divisor_->copy());
     }
 
-    Expression* Fraction::complex_derivative() const{
+    Expression* Fraction::complex_derivative(const std::string& variable) const{
         Expression* numerator = new Sum({
-            new Product({dividend_->complex_derivative(), divisor_->copy()}),
-            new Product({dividend_->copy(), new Product({new Constant(-1), divisor_->complex_derivative()})}),
+            new Product({dividend_->complex_derivative(variable), divisor_->copy()}),
+            new Product({dividend_->copy(), new Product({new Constant(-1), divisor_->complex_derivative(variable)})}),
         });
 
         Expression* denominator = new Product({divisor_->copy(), divisor_->copy()});
@@ -137,13 +137,46 @@ Expression* Constant::copy() const{
         return new Constant(value_);
 }
 
-Expression* Constant::complex_derivative() const{
+Expression* Constant::complex_derivative(const std::string& variable) const{
     return new Constant(0);
 }
 
+
+// Variable
+Variable::Variable(const std::string& name, double value){
+    name_ = name;
+    value_ = value;
+}
+
+double Variable::get_value() const{
+    auto it = Variable::variables.find(name_);
+
+    if (it != Variable::variables.end()){
+        return it->second;
+    }
+    else{
+        return value_;
+    }
+}
+
+Expression* Variable::complex_derivative(const std::string& variable) const{
+    if (variable == name_){
+        return new Constant(1);
+    } 
+    else{
+        return new Constant(0);
+    }
+}
+
+Expression* Variable::copy() const{
+    return new Variable(name_, value_);
+}
+//std::string Variable::toString() const override{ return name_; }
+
+
 namespace ElementaryFunctions{
-    Expression* ElementaryFunction::complex_derivative() const{
-        return new operators::Product({this->complex_derivative(), (this->get_input())->complex_derivative()});
+    Expression* ElementaryFunction::complex_derivative(const std::string& variable) const{
+        return new operators::Product({this->complex_derivative(variable), (this->get_input())->complex_derivative(variable)});
     }
 
     ElementaryFunction::ElementaryFunction() = default;
@@ -164,12 +197,12 @@ namespace ElementaryFunctions{
         return new Power(input_->copy(), power_);
     }
 
-    Expression* Power::derivative() const{
+    Expression* Power::derivative(const std::string& variable) const{
         if (power_->get_value() == 1){
             return new Constant(1);
         } 
         else
-        {
+       {
             return new operators::Product({
                 new Constant(power_->get_value()),
                 new Power(base_->copy(), new Constant(power_->get_value() - 1))
@@ -196,7 +229,7 @@ namespace ElementaryFunctions{
         return new Exp(power_->copy(), base_);
     }
 
-    Expression* Exp::derivative() const{
+    Expression* Exp::derivative(const std::string& variable) const{
         return new operators::Product({
                 new Exp(power_->copy(), base_),
                 new Log(power_->copy(), base_)
@@ -222,7 +255,7 @@ namespace ElementaryFunctions{
         return new Log(arg_->copy(), base_);
     }
 
-    Expression* Log::derivative() const{
+    Expression* Log::derivative(const std::string& variable) const{
         return new operators::Fraction(
             new Constant(1),
             new operators::Product({
@@ -268,3 +301,4 @@ Expression* double_to_fraction(double value){
     return new operators::Fraction(new Constant(numerator), new Constant(denominator));
 }
 
+std::unordered_map<std::string, double> Variable::variables;
