@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <cmath>
 #include <numeric>
@@ -14,6 +15,7 @@ public:
     virtual const Expression* complex_derivative(const std::string& variable) const = 0;
     virtual const Expression* copy() const = 0;
     virtual std::string to_string() const = 0;
+    virtual const Expression* simplify() const = 0;
     virtual ~Expression() = default;
 
     friend const Expression* operator+(const Expression& lhs, const Expression& rhs);
@@ -35,6 +37,7 @@ namespace operators{
         double get_value() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
+        const Expression* simplify() const override;
         std::string to_string() const override;
     };
 
@@ -64,6 +67,8 @@ namespace operators{
         ~Fraction();
 
         double get_value() const override;
+        const Expression* get_dividend() { return dividend_; };
+        const Expression* get_divisor() { return divisor_; };
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -78,15 +83,16 @@ public:
     static const Expression* ZERO;
     static const Expression* ONE;
 
-    Constant(int value);
+    Constant(long long value);
 
     double get_value() const override;
+    int get_exact_value() const;
     const Expression* complex_derivative(const std::string& variable) const override;
     const Expression* copy() const override;
     std::string to_string() const override;
 
 private:
-    int value_;
+    long long value_;
 };
 
 
@@ -183,5 +189,7 @@ namespace ElementaryFunctions{
 }
 
 const Expression* double_to_fraction(double value);
+
+const Expression* Taylor_series(const Expression* f, const std::string& variable, double point);
 
 #endif // TUNGSTENBETA_H
