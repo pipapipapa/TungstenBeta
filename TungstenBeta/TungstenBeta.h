@@ -33,6 +33,7 @@ namespace operators{
     public:
         Sum(std::vector<const Expression*>&& terms);
         ~Sum();
+        std::vector<const Expression*> get_terms() const { return terms_; };
 
         double get_value() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
@@ -47,10 +48,14 @@ namespace operators{
         std::vector<const Expression*> factors_;
 
     public:
-        Product(std::vector<const Expression*>&& factors);
+        //Product(std::vector<const Expression*>&& factors);
+        Product(std::vector<const Expression*> factors);
         ~Product();
 
+        std::vector<const Expression*> get_factors() const { return factors_; };
+
         double get_value() const override;
+        const Expression* simplify() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -67,8 +72,10 @@ namespace operators{
         ~Fraction();
 
         double get_value() const override;
-        const Expression* get_dividend() { return dividend_; };
-        const Expression* get_divisor() { return divisor_; };
+        const Expression* get_dividend() const { return dividend_; };
+        const Expression* get_divisor() const { return divisor_; };
+
+        const Expression* simplify() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -89,6 +96,7 @@ public:
     int get_exact_value() const;
     const Expression* complex_derivative(const std::string& variable) const override;
     const Expression* copy() const override;
+    const Expression* simplify() const override;
     std::string to_string() const override;
 
 private:
@@ -104,8 +112,10 @@ public:
     Variable(const std::string& name);
 
     double get_value() const override;
+    std::string get_name() const { return name_; };
 
     const Expression* complex_derivative(const std::string& variable) const override;
+    const Expression* simplify() const override;
 
     const Expression* copy() const override;
     std::string to_string() const override;
@@ -138,9 +148,12 @@ namespace ElementaryFunctions{
 
     public:
         Power(const Expression* base, const Expression* power);
+        const Expression* get_base() const { return base_; };
+        const Expression* get_power() const { return power_; };
 
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
+        const Expression* simplify() const override;
         const Expression* get_input() const override;
 
         // expression
@@ -157,9 +170,12 @@ namespace ElementaryFunctions{
 
     public:
         Exp(const Expression* base, const Expression* power);
+        const Expression* get_base() const { return base_; };
+        const Expression* get_power() const { return power_; };
 
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
+        const Expression* simplify() const override;
         const Expression* get_input() const override;
 
         // expression
@@ -176,9 +192,13 @@ namespace ElementaryFunctions{
 
     public:
         Log(const Expression* base, const Expression* arg);
+        const Expression* get_base() const { return base_; };
+        const Expression* get_arg() const { return arg_; };
+
 
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
+        const Expression* simplify() const override;
         const Expression* get_input() const override;
 
         // expression
@@ -191,5 +211,7 @@ namespace ElementaryFunctions{
 const Expression* double_to_fraction(double value);
 
 const Expression* Taylor_series(const Expression* f, const std::string& variable, double point);
+
+bool hasVariables(const Expression* expr);
 
 #endif // TUNGSTENBETA_H
