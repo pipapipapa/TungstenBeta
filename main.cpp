@@ -60,7 +60,7 @@ int main(int argc, char *argv[]){
         new Constant(5),
         new ElementaryFunctions::Exp(new Constant(2), new Variable("y"))
     });
-    auto T = Taylor_series(ex, "y", 0);
+    auto T = Taylor_series(ex, "y", 0); // 47.5683
 
     std::cout << T->to_string();
     std::cout << std::endl;

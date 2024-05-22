@@ -63,7 +63,7 @@ namespace operators{
         for (const Expression* term : openedTerms){
             const Expression* simplifiedTerm = term->simplify();
 
-            if (typeid(*simplifiedTerm) == typeid(Constant)){
+            if ((typeid(*simplifiedTerm) == typeid(Constant)) && (simplifiedTerm != Constant::e)){
                 constantTerm += static_cast<const Constant*>(simplifiedTerm)->get_exact_value();
             }
             else{
@@ -159,7 +159,7 @@ namespace operators{
                 continue;
             }
             if (!hasVariables(simplifiedFactor)){
-                if (typeid(*simplifiedFactor) == typeid(Constant)){
+                if ((typeid(*simplifiedFactor) == typeid(Constant)) && (simplifiedFactor != Constant::e)){
                     constantBuff += static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
                 }
                 else{
@@ -293,7 +293,7 @@ namespace operators{
         } 
 
         // Handle cases where both dividend and divisor are constants
-        if (typeid(*simplifiedDividend) == typeid(Constant) && typeid(*simplifiedDivisor) == typeid(Constant)){
+        if ((typeid(*simplifiedDividend) == typeid(Constant)) && (typeid(*simplifiedDivisor) == typeid(Constant)) && (simplifiedDividend != Constant::e) && (simplifiedDivisor != Constant::e)){
 
             int num = static_cast<const Constant*>(simplifiedDividend)->get_exact_value();
             int den = static_cast<const Constant*>(simplifiedDivisor)->get_exact_value();
@@ -330,16 +330,19 @@ namespace operators{
     }
 
     std::string Fraction::to_string() const{
-            std::string s;
-            s = "(" + dividend_->to_string() + ")" + " / " + "(" + divisor_->to_string() + ")";
-            return s;
+        if (this == Constant::e){
+            return "e";
         }
+        std::string s;
+        s = "(" + dividend_->to_string() + ")" + " / " + "(" + divisor_->to_string() + ")";
+        return s;
+    }
 };
 
 
 // Constant
-const double Constant::e = 2.718281828459045;
-const double Constant::pi = 3.141592653589793;
+const Expression* Constant::e;
+const Expression* Constant::pi = double_to_fraction(3.141592653589793);
 const Expression* Constant::ZERO = new Constant(0);
 const Expression* Constant::ONE = new Constant(1);
 
@@ -348,6 +351,9 @@ Constant::Constant(long long value){
 }
 
 double Constant::get_value() const{
+    if (this == Constant::e){
+        return 2.718281828459045;
+    }
     return value_;
 }
 
@@ -369,6 +375,9 @@ const Expression* Constant::complex_derivative(const std::string& variable) cons
 }
 
 std::string Constant::to_string() const{
+    if (this == Constant::e){
+        return "e";
+    }
     if (value_ > 0){
         return std::to_string(value_);
     }
@@ -494,7 +503,7 @@ namespace ElementaryFunctions{
     const Expression* Exp::derivative(const std::string& variable) const{
         return (new operators::Product({
                 new Exp(base_->copy(), power_->copy()),
-                new Log(base_->copy(), power_->copy())
+                new Log(Constant::e, base_->copy())
             }))->simplify();
     }
 
@@ -532,7 +541,7 @@ namespace ElementaryFunctions{
             Constant::ONE,
             new operators::Product({
                 arg_->copy(),
-                new Log(double_to_fraction(Constant::e), double_to_fraction(base_->get_value()))
+                new Log(Constant::e, double_to_fraction(base_->get_value()))
             })))->simplify();
     }
 
@@ -595,19 +604,24 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
     std::vector <const Expression*> terms;
     std::vector <const Expression*> fNDerivative;
     fNDerivative.push_back(f);
-    long long STEPS = 4;
-    for (long long i = 0; i < STEPS; ++i){
+    terms.push_back(f);
+
+    long long STEPS = 5;
+    for (long long i = 1; i < STEPS; ++i){
+        fNDerivative.push_back((fNDerivative[i - 1]->complex_derivative(variable_name))->simplify());
+
+        const Expression* k = new operators::Fraction(double_to_fraction(fNDerivative[i]->get_value()), new operators::Product({new Constant(i), double_to_fraction(fNDerivative[i - 1]->get_value())}));
         
-        Expression* k = new operators::Fraction(double_to_fraction(fNDerivative[i]->get_value()), WholeFactorial(i));
         const Expression* term = new operators::Product({
             k,
-            new ElementaryFunctions::Power(new operators::Sum({new Variable(variable_name), new operators::Product({new Constant(-1), double_to_fraction(point)})}), new Constant(i))
+            new operators::Sum({new Variable(variable_name), new operators::Product({new Constant(-1), double_to_fraction(point)})}),
+            terms[i - 1]
         });
         terms.push_back(term->simplify());
         std::cout << std::endl;
         std::cout << i << ":  " << "der:  " << fNDerivative[i]->simplify()->to_string() << "\n\n    term: " << term->simplify()->to_string() << std::endl;
         std::cout << std::endl;
-        fNDerivative.push_back((fNDerivative[i]->complex_derivative(variable_name))->simplify());
+        
     }
 
     Variable::variables[variable_name] = buff;

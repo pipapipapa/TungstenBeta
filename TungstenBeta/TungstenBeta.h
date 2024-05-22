@@ -85,8 +85,8 @@ namespace operators{
 
 class Constant : public Expression{
 public:
-    static const double e;
-    static const double pi;
+    static const Expression* e;
+    static const Expression* pi;
     static const Expression* ZERO;
     static const Expression* ONE;
 
