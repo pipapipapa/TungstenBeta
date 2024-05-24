@@ -4,349 +4,381 @@
 
 namespace operators{
 
-    // Sum
-    Sum::Sum(std::vector<const Expression*>&& terms){
-        terms_ = terms;
-    }
+// Sum
+Sum::Sum(std::vector<const Expression*>&& terms){
+    terms_ = terms;
+}
 
-    Sum::~Sum(){
-        if (terms_.size()){
-            for (const Expression* term : terms_){
-                delete term;
-            }
-        }    
-    }
-
-    const Expression* Sum::copy() const{
-        std::vector<const Expression*> clonedTerms;
+Sum::~Sum(){
+    if (terms_.size()){
         for (const Expression* term : terms_){
-            clonedTerms.push_back(term->copy());
+            delete term;
         }
-        return (new Sum(std::move(clonedTerms)))->simplify();
+    }    
+}
+
+const Expression* Sum::copy() const{
+    std::vector<const Expression*> clonedTerms;
+    for (const Expression* term : terms_){
+        clonedTerms.push_back(term);
+    }
+    return (new Sum(std::move(clonedTerms)))->simplify();
+}
+
+double Sum::get_value() const{
+    double result = 0;
+
+    for (const Expression* term : terms_){
+        result += term->get_value();
     }
 
-    double Sum::get_value() const{
-        double result = 0;
+    return result;
+}
 
-        for (const Expression* term : terms_){
-            result += term->get_value();
+const Expression* Sum::simplify() const{
+    std::vector<const Expression*> openedTerms;
+    std::vector<const Expression*> simplifiedTerms;
+    std::unordered_map<std::string, const Expression*> coefficients;
+    int constantTerm = 0;
+
+    for (const Expression* term : terms_){
+        const Expression* simplifiedTerm = term->simplify();
+
+        if (simplifiedTerm == Constant::ZERO){
+            continue;
         }
-
-        return result;
+        if (typeid(*simplifiedTerm) == typeid(Constant)){
+            constantTerm += static_cast<const Constant*>(simplifiedTerm)->get_exact_value();
+        }
+        else if (typeid(*simplifiedTerm) == typeid(Sum)){
+            for (const Expression* in_term : static_cast<const Sum*>(simplifiedTerm)->get_terms()){
+                openedTerms.push_back(in_term);
+            }
+        }
+        else if (typeid(*simplifiedTerm) != typeid(Constant)){
+            openedTerms.push_back(simplifiedTerm);
+        }
     }
 
-    const Expression* Sum::simplify() const{
-        std::vector<const Expression*> openedTerms;
-        std::vector<const Expression*> simplifiedTerms;
-        std::unordered_map<std::string, const Expression*> coefficients;
-        int constantTerm = 0;
+    for (const Expression* term : openedTerms){
+        const Expression* simplifiedTerm = term->simplify();
 
-        for (const Expression* term : terms_){
-            const Expression* simplifiedTerm = term->simplify();
-
-            if (simplifiedTerm == Constant::ZERO){
-                continue;
-            }
-            if (typeid(*simplifiedTerm) == typeid(Constant)){
-                constantTerm += static_cast<const Constant*>(simplifiedTerm)->get_exact_value();
-            }
-            else if (typeid(*simplifiedTerm) == typeid(Sum)){
-                for (const Expression* in_term : static_cast<const Sum*>(simplifiedTerm)->get_terms()){
-                    openedTerms.push_back(in_term);
-                }
-            }
-            else if (typeid(*simplifiedTerm) != typeid(Constant)){
-                openedTerms.push_back(simplifiedTerm);
-            }
+        if ((typeid(*simplifiedTerm) == typeid(Constant)) && (simplifiedTerm != Constant::e)){
+            constantTerm += static_cast<const Constant*>(simplifiedTerm)->get_exact_value();
         }
-
-        for (const Expression* term : openedTerms){
-            const Expression* simplifiedTerm = term->simplify();
-
-            if ((typeid(*simplifiedTerm) == typeid(Constant)) && (simplifiedTerm != Constant::e)){
-                constantTerm += static_cast<const Constant*>(simplifiedTerm)->get_exact_value();
-            }
-            else{
-                simplifiedTerms.push_back(simplifiedTerm);
-            }
+        else{
+            simplifiedTerms.push_back(simplifiedTerm);
         }
+    }
 
-        std::vector<const Expression*> finalTerms;
-        if (constantTerm != 0){
-            finalTerms.push_back(new Constant(constantTerm));
-        }
-        for (const Expression* term : simplifiedTerms){
-            finalTerms.push_back(term);
-        }
-        if (finalTerms.empty()){
+    std::vector<const Expression*> finalTerms;
+    if (constantTerm != 0){
+        finalTerms.push_back(new Constant(constantTerm));
+    }
+    for (const Expression* term : simplifiedTerms){
+        finalTerms.push_back(term);
+    }
+    if (finalTerms.empty()){
+        return Constant::ZERO;
+    }
+    else if (finalTerms.size() == 1){
+        return finalTerms[0];
+    }
+    else{
+        return new Sum(std::move(finalTerms));
+    }
+}
+
+const Expression* Sum::complex_derivative(const std::string& variable) const{
+    std::vector<const Expression*> derivedTerms;
+
+    for (const Expression* term : terms_){
+        derivedTerms.push_back(term->complex_derivative(variable));
+    }
+
+    return (new Sum(std::move(derivedTerms)))->simplify();
+}
+
+std::string Sum::to_string() const{
+    std::string s;
+    if (terms_.size() == 1){
+        return terms_[0]->to_string();
+    }
+    s = "(" + terms_[0]->to_string();
+    for (long long i = 1; i < terms_.size(); ++i){
+        s += " + " + terms_[i]->to_string();
+    }
+    s = s + ")";
+    return s;
+}
+
+
+// Product
+//Product::Product(std::vector<const Expression*>&& factors){
+//    factors_= factors;
+//}
+
+Product::Product(std::vector<const Expression*> factors){
+    factors_= factors;
+}
+
+Product::~Product(){
+    for (const Expression* factor : factors_){
+        delete factor;
+    }
+}
+
+const Expression* Product::copy() const{
+    std::vector<const Expression*> clonedFactors;
+    for (const Expression* factor : factors_){
+        clonedFactors.push_back(factor);
+    }
+    return (new Product(std::move(clonedFactors)))->simplify();
+}
+
+double Product::get_value() const{
+    double result = 1;
+    for (const Expression* factor : factors_){
+        result *= factor->get_value();
+    }
+    return result;
+}
+
+const Expression* Product::simplify() const {
+    std::vector<const Expression*> simplifiedFactors;
+    std::vector<const Expression*> openedFactors;
+    std::vector<const Expression*> fractions;
+    std::vector<const Expression*> divisorTerms;
+    std::vector<const Expression*> constantFactor;
+    int constantBuff = 1;
+
+    std::unordered_map<std::string, std::pair<const Expression*, const Expression*>> powers; 
+
+    for (const Expression* factor : factors_){
+        const Expression* simplifiedFactor = factor->simplify();
+            
+        if (simplifiedFactor == Constant::ZERO){
             return Constant::ZERO;
         }
-        else if (finalTerms.size() == 1){
-            return finalTerms[0];
+        if (simplifiedFactor == Constant::ONE){
+            continue;
+        }
+        if ((typeid(*simplifiedFactor) == typeid(Constant)) && (simplifiedFactor != Constant::e)){
+            //std::cout << simplifiedFactor->to_string() << "  :  ";
+            //std::cout << static_cast<const Constant*>(simplifiedFactor)->get_exact_value() << "\n";
+
+            constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
+        }
+        else if (typeid(*simplifiedFactor) == typeid(Product)){
+        //std::cout << simplifiedFactor->to_string() << " | ";
+
+            for (const Expression* in_factor : static_cast<const Product*>(simplifiedFactor)->get_factors()){
+                openedFactors.push_back(in_factor);
+            }
+        }
+        else if (typeid(*simplifiedFactor) != typeid(Constant)){
+            openedFactors.push_back(simplifiedFactor);
+        }
+    }
+    //std::cout << "\n";
+    for (const Expression* factor : openedFactors){
+        const Expression* simplifiedFactor = factor->simplify();
+        //std::cout << simplifiedFactor->to_string() << "\n";
+        if (typeid(*simplifiedFactor) == typeid(Constant)){
+            constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
+        }
+        else if (typeid(*simplifiedFactor) == typeid(Fraction)){
+            fractions.push_back(simplifiedFactor);
         }
         else{
-            return new Sum(std::move(finalTerms));
+            simplifiedFactors.push_back(simplifiedFactor);
         }
     }
 
-    const Expression* Sum::complex_derivative(const std::string& variable) const{
-        std::vector<const Expression*> derivedTerms;
+    std::vector<const Expression*> finalFactors;
 
-        for (const Expression* term : terms_){
-            derivedTerms.push_back(term->complex_derivative(variable));
-        }
-
-        return (new Sum(std::move(derivedTerms)))->simplify();
+    for (const Expression* factor : simplifiedFactors){
+        finalFactors.push_back(factor);
     }
 
-    std::string Sum::to_string() const{
-        std::string s;
-        s = "(" + terms_[0]->to_string();
-        for (long long i = 1; i < terms_.size(); ++i){
-            s += " + " + terms_[i]->to_string();
-        }
-        s = s + ")";
-        return s;
-    }
-
-
-    // Product
-    //Product::Product(std::vector<const Expression*>&& factors){
-    //    factors_= factors;
-    //}
-
-    Product::Product(std::vector<const Expression*> factors){
-        factors_= factors;
-    }
-
-    Product::~Product(){
-        for (const Expression* factor : factors_){
-            delete factor;
-        }
-    }
-
-    const Expression* Product::copy() const{
-        std::vector<const Expression*> clonedFactors;
-        for (const Expression* factor : factors_){
-            clonedFactors.push_back(factor->copy());
-        }
-        return (new Product(std::move(clonedFactors)))->simplify();
-    }
-
-    double Product::get_value() const{
-        double result = 1;
-        for (const Expression* factor : factors_){
-            result *= factor->get_value();
-        }
-        return result;
-    }
-
-    const Expression* Product::simplify() const{
-        std::vector<const Expression*> simplifiedFactors;
-        std::vector<const Expression*> openedFactors;
-        std::vector<const Expression*> fractions;
-        std::vector<const Expression*> constantFactor;
-        int constantBuff = 1;
-
-        std::unordered_map<std::string, const Expression*> powers; 
-
-        for (const Expression* factor : factors_){
-            const Expression* simplifiedFactor = factor->simplify();
-            
-            if (simplifiedFactor == Constant::ZERO){
-                return Constant::ZERO;
-            }
-            if (simplifiedFactor == Constant::ONE){
-                continue;
-            }
-            if (!hasVariables(simplifiedFactor)){
-                if ((typeid(*simplifiedFactor) == typeid(Constant)) && (simplifiedFactor != Constant::e)){
-                    //std::cout << simplifiedFactor->to_string() << "  :  ";
-                    //std::cout << static_cast<const Constant*>(simplifiedFactor)->get_exact_value() << "\n";
-
-                    constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
-                }
-                else{
-                    constantFactor.push_back(simplifiedFactor);
-                }
-            } 
-            else if (typeid(*simplifiedFactor) == typeid(Product)){
-                for (const Expression* in_factor : static_cast<const Product*>(simplifiedFactor)->get_factors()){
-                    openedFactors.push_back(in_factor);
-                }
-            }
-            else if (typeid(*simplifiedFactor) != typeid(Constant)){
-                openedFactors.push_back(simplifiedFactor);
-            }
-        }
-
-        for (const Expression* factor : openedFactors){
-            const Expression* simplifiedFactor = factor->simplify();
-            //std::cout << simplifiedFactor->to_string() << "\n";
-            if (!hasVariables(simplifiedFactor)){
-                if (typeid(*simplifiedFactor) == typeid(Constant)){
-                    constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
-                }
-                else{
-                    constantFactor.push_back(simplifiedFactor);
-                }
-            } 
-            else if (typeid(*simplifiedFactor) == typeid(Fraction)){
-                fractions.push_back(simplifiedFactor);
-            }
-            else{
-                simplifiedFactors.push_back(simplifiedFactor);
-            }
-        }
-
-        std::vector<const Expression*> finalFactors;
-        if (constantBuff != 1){
-            finalFactors.push_back(new Constant(constantBuff));
-        }
-        if (!constantFactor.empty()){
-            finalFactors.push_back(new Product(std::move(constantFactor)));
-        }
-
-        for (const Expression* factor : simplifiedFactors){
-            finalFactors.push_back(factor->copy());
-        }
-
-        if (!fractions.empty()){
-            std::vector<const Expression*> divisorTerms;
-            for (const Expression* fraction : fractions){
-                const Fraction* fraction_ = static_cast<const Fraction*>(fraction);
-                finalFactors.push_back(fraction_->get_dividend()->copy());
-                divisorTerms.push_back(fraction_->get_divisor()->copy());
-            }
-
-            const Expression* productDividend = new Product(std::move(finalFactors));
-            const Expression* productDivisor = new Product(std::move(divisorTerms));
-            return new Fraction(productDividend, productDivisor);
-        }
-        else{
-            if (finalFactors.empty()){
-                return Constant::ONE;
-            }
-            else if (finalFactors.size() == 1){
-                return finalFactors[0];
-            }
-            else{
-                return new Product(std::move(finalFactors)); 
-            }
-        }
-    }
-
-    const Expression* Product::complex_derivative(const std::string& variable) const{
-        std::vector<const Expression*> derivedFactors;
+    if (!constantFactor.empty()){
         
-        for (long long i = 0; i < factors_.size(); ++i){
+        finalFactors.push_back(new Product(std::move(constantFactor)));
+    }
 
-            std::vector<const Expression*> otherFactors;
-            for (long long j = 0; j < factors_.size(); ++j){
-                if (i != j){
-                    otherFactors.push_back(factors_[j]->copy());
-                }
+    if (!fractions.empty()){
+        for (const Expression* fraction : fractions){
+            const Fraction* fraction_ = static_cast<const Fraction*>(fraction);
+            finalFactors.push_back(fraction_->get_dividend());
+            divisorTerms.push_back(fraction_->get_divisor());
+        }
+    }
+
+    for (const Expression* factor : finalFactors){
+        if (typeid(*factor) == typeid(ElementaryFunctions::Power)) {
+            const ElementaryFunctions::Power* powExpr = static_cast<const ElementaryFunctions::Power*>(factor);
+            const Expression* base = powExpr->get_base();
+            const Expression* power = powExpr->get_power();
+            std::string key = base->to_string();
+
+            if (powers.find(key) == powers.end()) { 
+                powers[key] = std::make_pair(base, Constant::ZERO);
             }
 
-            otherFactors.push_back(factors_[i]->complex_derivative(variable));
-            const Expression* productTerm = new Product(std::move(otherFactors));
-            derivedFactors.push_back(productTerm);
+            powers[key].second = (new operators::Sum({powers[key].second, power}))->simplify();
         }
-
-        return (new Sum(std::move(derivedFactors)))->simplify();
-    }
-
-    std::string Product::to_string() const{
-        std::string s = "";
-        if (factors_.size() == 0){
-            return s;
-        }
-        s = factors_[0]->to_string();
-        for (size_t i = 1; i < factors_.size(); ++i){
-            s += " * " + factors_[i]->to_string();
-        }
-        return s;
-    }
-
-
-    // Fraction
-    Fraction::Fraction(const Expression* dividend, const Expression* divisor){
-        dividend_ = dividend;
-        divisor_ = divisor;
-    }
-
-    Fraction::~Fraction(){
-        delete dividend_;
-        delete divisor_;
-    }
-
-    double Fraction::get_value() const{
-        return dividend_->get_value() / divisor_->get_value();
-    }
-
-    const Expression* Fraction::copy() const{
-        return (new Fraction(dividend_->copy(), divisor_->copy()))->simplify();
-    }
-
-    const Expression* Fraction::simplify() const{
-        const Expression* simplifiedDividend = dividend_->simplify();
-        const Expression* simplifiedDivisor = divisor_->simplify();
-
-        // If the divisor is 1, simplify to just the dividend
-        if (simplifiedDivisor == Constant::ONE){
-            return simplifiedDividend;
-        } 
-
-        // Handle cases where both dividend and divisor are constants
-        if ((typeid(*simplifiedDividend) == typeid(Constant)) && (typeid(*simplifiedDivisor) == typeid(Constant)) && (simplifiedDividend != Constant::e) && (simplifiedDivisor != Constant::e)){
-
-            int num = static_cast<const Constant*>(simplifiedDividend)->get_exact_value();
-            int den = static_cast<const Constant*>(simplifiedDivisor)->get_exact_value();
-            if ((num < 0) && (den < 0)){
-                num *= -1;
-                den *= -1;
+        else{
+            std::string key = factor->to_string();
+            if (powers.find(key) == powers.end()){
+                powers[key] = std::make_pair(factor, Constant::ZERO);
             }
-            else if (den < 0){
-                num *= -1;
-                den *= -1;
-            }
+            powers[key].second = (new operators::Sum({powers[key].second, Constant::ONE}))->simplify();
+        }
+    }
 
-            if (num % den == 0){
-                return new Constant(num / den);
-            } else{
-                int gcd = std::gcd(abs(num), abs(den));
-                //std::cout << "simplifiedDividend: " << simplifiedDividend->to_string() << std::endl; 
-                //std::cout << "simplifiedDivisor: " << simplifiedDivisor->to_string() << std::endl;
-                return new Fraction(new Constant(num / gcd), new Constant(den / gcd));
+    finalFactors.clear();
+
+    if (constantBuff != 1){
+        finalFactors.push_back(new Constant(constantBuff));
+    }
+
+    for (auto it = powers.begin(); it != powers.end(); ++it) {
+        const Expression* base = it->second.first;
+        const Expression* power = it->second.second->simplify();
+        //std::cout << it->first << " : " << base->to_string() << " : " << power->to_string() << "\n";
+        finalFactors.push_back(new ElementaryFunctions::Power(base, power));
+    }
+
+    if (!fractions.empty()){
+        const Expression* productDividend = new Product(std::move(finalFactors));
+        const Expression* productDivisor = new Product(std::move(divisorTerms));
+        return new Fraction(productDividend, productDivisor);
+    }
+    else{
+        if (finalFactors.empty()){
+            return Constant::ONE;
+        }
+        else if (finalFactors.size() == 1){
+            return finalFactors[0];
+        }
+        else{
+            return new Product(std::move(finalFactors)); 
+        }
+    }
+}
+
+const Expression* Product::complex_derivative(const std::string& variable) const{
+    std::vector<const Expression*> derivedFactors;
+    //this->simplify();
+    for (long long i = 0; i < factors_.size(); ++i){
+
+        std::vector<const Expression*> otherFactors;
+        for (long long j = 0; j < factors_.size(); ++j){
+            if (i != j){
+                otherFactors.push_back(factors_[j]);
             }
         }
 
-        return new Fraction(simplifiedDividend, simplifiedDivisor);
+        otherFactors.push_back(factors_[i]->complex_derivative(variable));
+        const Expression* productTerm = new Product(std::move(otherFactors));
+        derivedFactors.push_back(productTerm);
     }
 
-    const Expression* Fraction::complex_derivative(const std::string& variable) const{
-        const Expression* numerator = new Sum({
-            new Product({dividend_->complex_derivative(variable), divisor_->copy()}),
-            new Product({dividend_->copy(), new Product({new Constant(-1), divisor_->complex_derivative(variable)})}),
-        });
+    return (new Sum(std::move(derivedFactors)))->simplify();
+}
 
-        const Expression* denominator = new Product({divisor_->copy(), divisor_->copy()});
-        return (new Fraction(numerator, denominator))->simplify();
+std::string Product::to_string() const{
+    std::string s = "";
+    if (factors_.size() == 1){
+        return factors_[0]->to_string();
+    }
+    s = factors_[0]->to_string();
+    for (size_t i = 1; i < factors_.size(); ++i){
+        s += " * " + factors_[i]->to_string();
+    }
+    return s;
+}
+
+
+// Fraction
+Fraction::Fraction(const Expression* dividend, const Expression* divisor){
+    dividend_ = dividend;
+    divisor_ = divisor;
+}
+
+Fraction::~Fraction(){
+    delete dividend_;
+    delete divisor_;
+}
+
+double Fraction::get_value() const{
+    return dividend_->get_value() / divisor_->get_value();
+}
+
+const Expression* Fraction::copy() const{
+    return (new Fraction(dividend_, divisor_))->simplify();
+}
+
+const Expression* Fraction::simplify() const{
+    const Expression* simplifiedDividend = dividend_->simplify();
+    const Expression* simplifiedDivisor = divisor_->simplify();
+
+    if (simplifiedDivisor == Constant::ONE){
+        return simplifiedDividend;
+    }
+    if (simplifiedDivisor == Constant::ZERO){
+        return Constant::ZERO;
     }
 
-    std::string Fraction::to_string() const{
-        if (this == Constant::e){
-            return "e";
+    if ((typeid(*simplifiedDividend) == typeid(Constant)) && (typeid(*simplifiedDivisor) == typeid(Constant)) && (simplifiedDividend != Constant::e) && (simplifiedDivisor != Constant::e)){
+
+        int num = static_cast<const Constant*>(simplifiedDividend)->get_exact_value();
+        int den = static_cast<const Constant*>(simplifiedDivisor)->get_exact_value();
+        if ((num < 0) && (den < 0)){
+            num *= -1;
+            den *= -1;
         }
-        std::string s;
-        s = "(" + dividend_->to_string() + ")" + " / " + "(" + divisor_->to_string() + ")";
-        return s;
+        else if (den < 0){
+            num *= -1;
+            den *= -1;
+        }
+
+        if (num % den == 0){
+            return new Constant(num / den);
+        } else{
+            int gcd = std::gcd(abs(num), abs(den));
+            //std::cout << "simplifiedDividend: " << simplifiedDividend->to_string() << std::endl; 
+            //std::cout << "simplifiedDivisor: " << simplifiedDivisor->to_string() << std::endl;
+            return new Fraction(new Constant(num / gcd), new Constant(den / gcd));
+        }
     }
+
+    return new Fraction(simplifiedDividend, simplifiedDivisor);
+}
+
+const Expression* Fraction::complex_derivative(const std::string& variable) const{
+    const Expression* numerator = new Sum({
+        new Product({dividend_->complex_derivative(variable), divisor_}),
+        new Product({dividend_, new Product({new Constant(-1), divisor_->complex_derivative(variable)})}),
+    });
+
+    const Expression* denominator = new Product({divisor_, divisor_});
+    return (new Fraction(numerator, denominator))->simplify();
+}
+
+std::string Fraction::to_string() const{
+    if (this == Constant::e){
+        return "e";
+    }
+    std::string s;
+    s = "(" + dividend_->to_string() + ")" + " / " + "(" + divisor_->to_string() + ")";
+    return s;
+}
 };
 
 
 // Constant
-const Expression* Constant::e;
+const Expression* Constant::e = new Constant;
 const Expression* Constant::pi = double_to_fraction(3.141592653589793);
 const Expression* Constant::ZERO = new Constant(0);
 const Expression* Constant::ONE = new Constant(1);
@@ -355,9 +387,12 @@ Constant::Constant(long long value){
     value_ = value;
 }
 
+Constant::Constant(){
+}
+
 double Constant::get_value() const{
     if (this == Constant::e){
-        return 2.718281828459045;
+        return 2.718281828;
     }
     return value_;
 }
@@ -432,138 +467,138 @@ std::string Variable::to_string() const{
 
 
 namespace ElementaryFunctions{
-    const Expression* ElementaryFunction::complex_derivative(const std::string& variable) const{
-        return (new operators::Product({this->derivative(variable), (this->get_input())->complex_derivative(variable)}))->simplify();
-    }
+const Expression* ElementaryFunction::complex_derivative(const std::string& variable) const{
+    return (new operators::Product({this->derivative(variable), (this->get_input())->complex_derivative(variable)}))->simplify();
+}
 
-    ElementaryFunction::ElementaryFunction() = default;
-    ElementaryFunction::~ElementaryFunction() = default;
-
-
-    // Power
-    Power::Power(const Expression* base, const Expression* power){
-        base_ = base;
-        power_ = power;
-    }
-
-    double Power::get_value() const{
-        return std::pow(base_->get_value(), power_->get_value());
-    }
-
-    const Expression* Power::copy() const{
-        return (new Power(base_->copy(), power_->copy()))->simplify();
-    }
-
-    const Expression* Power::simplify() const{
-        return new Power(base_->simplify(), power_->simplify());
-    }
-
-    const Expression* Power::derivative(const std::string& variable) const{
-        if (power_->get_value() == 1){
-            return Constant::ONE;
-        } 
-        else
-      {
-            return (new operators::Product({
-                new Constant(power_->get_value()),
-                new Power(base_->copy(), new Constant(power_->get_value() - 1))
-            }))->simplify();
-        }
-    }
-
-    const Expression* Power::get_input() const{
-        return base_;
-    }
-
-    std::string Power::to_string() const{
-        std::string s;
-        if (power_->get_value() == 1){
-            s = base_->to_string();
-        }
-        else{
-            s = "(" + base_->to_string() + "^" + power_->to_string() + ")";
-        }
-        return s;
-    }
+ElementaryFunction::ElementaryFunction() = default;
+ElementaryFunction::~ElementaryFunction() = default;
 
 
-    // Exponent
-    Exp::Exp(const Expression* base, const Expression* power){
-        base_ = base;
-        power_ = power;
-    }
+// Power
+Power::Power(const Expression* base, const Expression* power){
+    base_ = base;
+    power_ = power;
+}
 
-    double Exp::get_value() const{
-        return std::exp(power_->get_value() * std::log(base_->get_value()));
-    }
+double Power::get_value() const{
+    return std::pow(base_->get_value(), power_->get_value());
+}
 
-    const Expression* Exp::copy() const{
-        return (new Exp(power_->copy(), base_->copy()))->simplify();
-    }
+const Expression* Power::copy() const{
+    return (new Power(base_, power_))->simplify();
+}
 
-    const Expression* Exp::simplify() const{
-        return new Exp(power_->simplify(), base_->simplify());
-    }
+const Expression* Power::simplify() const{
+    return new Power(base_->simplify(), power_->simplify());
+}
 
-    const Expression* Exp::derivative(const std::string& variable) const{
+const Expression* Power::derivative(const std::string& variable) const{
+    if (power_->get_value() == 1){
+        return Constant::ONE;
+    } 
+    else
+    {
         return (new operators::Product({
-                new Exp(base_->copy(), power_->copy()),
-                new Log(Constant::e, base_->copy())
-            }))->simplify();
+            new Constant(power_->get_value()),
+            new Power(base_, new Constant(power_->get_value() - 1))
+        }))->simplify();
     }
+}
 
-    const Expression* Exp::get_input() const{
-        return power_;
+const Expression* Power::get_input() const{
+    return base_;
+}
+
+std::string Power::to_string() const{
+    std::string s;
+    if (power_->get_value() == 1){
+        s = base_->to_string();
     }
-
-    std::string Exp::to_string() const{
-        std::string s;
-        s = base_->to_string() + "^(" + power_->to_string() + ")";
-        return s;
+    else{
+        s = "(" + base_->to_string() + "^" + power_->to_string() + ")";
     }
+    return s;
+}
 
 
-    // LOgarithm
-    Log::Log(const Expression* base, const Expression* arg){
-        base_ = base;
-        arg_ = arg;
+// Exponent
+Exp::Exp(const Expression* base, const Expression* power){
+    base_ = base;
+    power_ = power;
+}
+
+double Exp::get_value() const{
+    return std::exp(power_->get_value() * std::log(base_->get_value()));
+}
+
+const Expression* Exp::copy() const{
+    return (new Exp(base_, power_))->simplify();
+}
+
+const Expression* Exp::simplify() const{
+    return new Exp(base_->simplify(), power_->simplify());
+}
+
+const Expression* Exp::derivative(const std::string& variable) const{
+    return (new operators::Product({
+            new Exp(base_, power_),
+            new Log(Constant::e, base_)
+        }))->simplify();
+}
+
+const Expression* Exp::get_input() const{
+    return power_;
+}
+
+std::string Exp::to_string() const{
+    std::string s;
+    s = base_->to_string() + "^(" + power_->to_string() + ")";
+    return s;
+}
+
+
+// LOgarithm
+Log::Log(const Expression* base, const Expression* arg){
+    base_ = base;
+    arg_ = arg;
+}
+
+double Log::get_value() const{
+    return std::log(arg_->get_value()) / std::log(base_->get_value());
+}
+
+const Expression* Log::copy() const{
+    return (new Log(arg_, base_))->simplify();
+}
+
+const Expression* Log::simplify() const{
+    return new Log(base_->simplify(), arg_->simplify());
+}
+
+const Expression* Log::derivative(const std::string& variable) const{
+    return (new operators::Fraction(
+        Constant::ONE,
+        new operators::Product({
+            arg_,
+            new Log(Constant::e, base_)
+        })))->simplify();
+}
+
+const Expression* Log::get_input() const{
+    return arg_;
+}
+
+std::string Log::to_string() const{
+    std::string s;
+    if (base_ == Constant::e){
+        s = "ln(" + arg_->to_string() + ")";
     }
-
-    double Log::get_value() const{
-        return std::log(arg_->get_value()) / std::log(base_->get_value());
+    else{
+        s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
     }
-
-    const Expression* Log::copy() const{
-        return (new Log(arg_->copy(), base_->copy()))->simplify();
-    }
-
-    const Expression* Log::simplify() const{
-        return new Log(arg_->simplify(), base_->simplify());
-    }
-
-    const Expression* Log::derivative(const std::string& variable) const{
-        return (new operators::Fraction(
-            Constant::ONE,
-            new operators::Product({
-                arg_->copy(),
-                new Log(Constant::e, double_to_fraction(base_->get_value()))
-            })))->simplify();
-    }
-
-    const Expression* Log::get_input() const{
-        return arg_;
-    }
-
-    std::string Log::to_string() const{
-        std::string s;
-        if (base_ == Constant::e){
-            s = "ln(" + arg_->to_string() + ")";
-        }
-        else{
-            s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
-        }
-        return s;
-    }
+    return s;
+}
 };
 
 

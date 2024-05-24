@@ -91,6 +91,8 @@ public:
     static const Expression* ONE;
 
     Constant(long long value);
+    Constant();
+
 
     double get_value() const override;
     int get_exact_value() const;
