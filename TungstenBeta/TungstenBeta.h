@@ -11,7 +11,7 @@
 
 class Expression{
 public:
-    virtual double get_value() const = 0;
+    virtual double calculate() const = 0;
     virtual const Expression* complex_derivative(const std::string& variable) const = 0;
     virtual const Expression* copy() const = 0;
     virtual std::string to_string() const = 0;
@@ -35,7 +35,7 @@ namespace operators{
         ~Sum();
         std::vector<const Expression*> get_terms() const { return terms_; };
 
-        double get_value() const override;
+        double calculate() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         const Expression* simplify() const override;
@@ -54,7 +54,7 @@ namespace operators{
 
         std::vector<const Expression*> get_factors() const { return factors_; };
 
-        double get_value() const override;
+        double calculate() const override;
         const Expression* simplify() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
@@ -71,7 +71,7 @@ namespace operators{
         Fraction(const Expression* dividend, const Expression* divisor);
         ~Fraction();
 
-        double get_value() const override;
+        double calculate() const override;
         const Expression* get_dividend() const { return dividend_; };
         const Expression* get_divisor() const { return divisor_; };
 
@@ -94,7 +94,7 @@ public:
     Constant();
 
 
-    double get_value() const override;
+    double calculate() const override;
     int get_exact_value() const;
     const Expression* complex_derivative(const std::string& variable) const override;
     const Expression* copy() const override;
@@ -113,7 +113,7 @@ public:
 
     Variable(const std::string& name);
 
-    double get_value() const override;
+    double calculate() const override;
     std::string get_name() const { return name_; };
 
     const Expression* complex_derivative(const std::string& variable) const override;
@@ -159,7 +159,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
-        double get_value() const override;
+        double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
     };
@@ -181,7 +181,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
-        double get_value() const override;
+        double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
     };
@@ -204,7 +204,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
-        double get_value() const override;
+        double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
     };

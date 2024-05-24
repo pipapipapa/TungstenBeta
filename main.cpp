@@ -8,19 +8,21 @@ int main(int argc, char *argv[]){
     Variable::variables["x"] = double_to_fraction(1.5);
     Variable::variables["y"] = double_to_fraction(3.25);
 
+    auto e = Constant::e;
+    std::cout << e->to_string() << "\n";
 
     auto sum = *x + *y;
-    std::cout << "Sum: " << sum->to_string() << " = " << sum->get_value() << std::endl;
+    std::cout << "Sum: " << sum->to_string() << " = " << sum->calculate() << std::endl;
     std::cout << std::endl;
     std::cout << "Sum derivative of x: " << sum->complex_derivative("x")->to_string() << std::endl;
     std::cout << "Sum derivative of y: " << sum->complex_derivative("y")->to_string() << std::endl;
     std::cout << std::endl;
 
     auto product = *x * *y;
-    std::cout << "Product: " << product->to_string() << " = " << product->get_value() << std::endl;
+    std::cout << "Product: " << product->to_string() << " = " << product->calculate() << std::endl;
     std::cout << std::endl;
     std::cout << "Product derivative of x: " << product->complex_derivative("x")->to_string() << std::endl;
-    std::cout << "Product derivative of. y: " << product->complex_derivative("y")->to_string() << std::endl;
+    std::cout << "Product derivative of y: " << product->complex_derivative("y")->to_string() << std::endl;
     std::cout << std::endl;
     auto expr = new operators::Product({
         new Constant(5),
@@ -30,8 +32,7 @@ int main(int argc, char *argv[]){
     auto expr1 = new operators::Fraction(
         new operators::Sum({
             new ElementaryFunctions::Log(double_to_fraction(2.71), expr),
-            new ElementaryFunctions::Exp(new Constant(2), x),
-            expr}),
+            new ElementaryFunctions::Exp(new Constant(2), x)}),
         expr);
 
     std::cout << "Expression: " << expr->to_string() << std::endl;
@@ -42,7 +43,7 @@ int main(int argc, char *argv[]){
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "Expression: " << expr1->to_string() << std::endl;
-    std::cout << "Expression value: " << expr1->get_value() << std::endl;
+    std::cout << "Expression value: " << expr1->calculate() << std::endl;
 
     auto derivative1 = expr1->complex_derivative("x");
     std::cout << std::endl;
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]){
 
     auto z = new Variable("z");
     Variable::variables["z"] = expr1;
-    std::cout << "z value: " << z->get_value() << std::endl;
+    std::cout << "z value: " << z->calculate() << std::endl;
     std::cout << std::endl;
     
 
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]){
 
     std::cout << T->to_string();
     std::cout << std::endl;
-    std::cout << T->get_value();
+    std::cout << T->calculate();
     std::cout << std::endl;
 
 

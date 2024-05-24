@@ -25,11 +25,11 @@ const Expression* Sum::copy() const{
     return (new Sum(std::move(clonedTerms)))->simplify();
 }
 
-double Sum::get_value() const{
+double Sum::calculate() const{
     double result = 0;
 
     for (const Expression* term : terms_){
-        result += term->get_value();
+        result += term->calculate();
     }
 
     return result;
@@ -136,10 +136,10 @@ const Expression* Product::copy() const{
     return (new Product(std::move(clonedFactors)))->simplify();
 }
 
-double Product::get_value() const{
+double Product::calculate() const{
     double result = 1;
     for (const Expression* factor : factors_){
-        result *= factor->get_value();
+        result *= factor->calculate();
     }
     return result;
 }
@@ -311,8 +311,8 @@ Fraction::~Fraction(){
     delete divisor_;
 }
 
-double Fraction::get_value() const{
-    return dividend_->get_value() / divisor_->get_value();
+double Fraction::calculate() const{
+    return dividend_->calculate() / divisor_->calculate();
 }
 
 const Expression* Fraction::copy() const{
@@ -390,7 +390,7 @@ Constant::Constant(long long value){
 Constant::Constant(){
 }
 
-double Constant::get_value() const{
+double Constant::calculate() const{
     if (this == Constant::e){
         return 2.718281828;
     }
@@ -434,10 +434,10 @@ Variable::Variable(const std::string& name){
     name_ = name;
 }
 
-double Variable::get_value() const{
+double Variable::calculate() const{
     auto it = Variable::variables.find(name_);
     if (it != variables.end()){
-        return it->second->get_value();
+        return it->second->calculate();
     }
     else{
         return 0;
@@ -481,8 +481,8 @@ Power::Power(const Expression* base, const Expression* power){
     power_ = power;
 }
 
-double Power::get_value() const{
-    return std::pow(base_->get_value(), power_->get_value());
+double Power::calculate() const{
+    return std::pow(base_->calculate(), power_->calculate());
 }
 
 const Expression* Power::copy() const{
@@ -494,14 +494,14 @@ const Expression* Power::simplify() const{
 }
 
 const Expression* Power::derivative(const std::string& variable) const{
-    if (power_->get_value() == 1){
+    if (power_->calculate() == 1){
         return Constant::ONE;
     } 
     else
     {
         return (new operators::Product({
-            new Constant(power_->get_value()),
-            new Power(base_, new Constant(power_->get_value() - 1))
+            new Constant(power_->calculate()),
+            new Power(base_, new Constant(power_->calculate() - 1))
         }))->simplify();
     }
 }
@@ -512,7 +512,7 @@ const Expression* Power::get_input() const{
 
 std::string Power::to_string() const{
     std::string s;
-    if (power_->get_value() == 1){
+    if (power_->calculate() == 1){
         s = base_->to_string();
     }
     else{
@@ -528,8 +528,8 @@ Exp::Exp(const Expression* base, const Expression* power){
     power_ = power;
 }
 
-double Exp::get_value() const{
-    return std::exp(power_->get_value() * std::log(base_->get_value()));
+double Exp::calculate() const{
+    return std::exp(power_->calculate() * std::log(base_->calculate()));
 }
 
 const Expression* Exp::copy() const{
@@ -564,8 +564,8 @@ Log::Log(const Expression* base, const Expression* arg){
     arg_ = arg;
 }
 
-double Log::get_value() const{
-    return std::log(arg_->get_value()) / std::log(base_->get_value());
+double Log::calculate() const{
+    return std::log(arg_->calculate()) / std::log(base_->calculate());
 }
 
 const Expression* Log::copy() const{
@@ -655,7 +655,7 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
     for (long long i = 1; i < STEPS; ++i){
         fNDerivative.push_back((fNDerivative[i - 1]->complex_derivative(variable_name))->simplify());
 
-        const Expression* k = new operators::Fraction(double_to_fraction(fNDerivative[i]->get_value()), new operators::Product({new Constant(i), double_to_fraction(fNDerivative[i - 1]->get_value())}));
+        const Expression* k = new operators::Fraction(double_to_fraction(fNDerivative[i]->calculate()), new operators::Product({new Constant(i), double_to_fraction(fNDerivative[i - 1]->calculate())}));
         
         const Expression* term = new operators::Product({
             k,
