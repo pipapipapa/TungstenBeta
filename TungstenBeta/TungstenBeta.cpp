@@ -152,6 +152,7 @@ namespace operators{
 
         for (const Expression* factor : factors_){
             const Expression* simplifiedFactor = factor->simplify();
+            
             if (simplifiedFactor == Constant::ZERO){
                 return Constant::ZERO;
             }
@@ -160,7 +161,10 @@ namespace operators{
             }
             if (!hasVariables(simplifiedFactor)){
                 if ((typeid(*simplifiedFactor) == typeid(Constant)) && (simplifiedFactor != Constant::e)){
-                    constantBuff += static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
+                    //std::cout << simplifiedFactor->to_string() << "  :  ";
+                    //std::cout << static_cast<const Constant*>(simplifiedFactor)->get_exact_value() << "\n";
+
+                    constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
                 }
                 else{
                     constantFactor.push_back(simplifiedFactor);
@@ -178,9 +182,10 @@ namespace operators{
 
         for (const Expression* factor : openedFactors){
             const Expression* simplifiedFactor = factor->simplify();
+            //std::cout << simplifiedFactor->to_string() << "\n";
             if (!hasVariables(simplifiedFactor)){
                 if (typeid(*simplifiedFactor) == typeid(Constant)){
-                    constantBuff += static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
+                    constantBuff *= static_cast<const Constant*>(simplifiedFactor)->get_exact_value();
                 }
                 else{
                     constantFactor.push_back(simplifiedFactor);
@@ -551,7 +556,12 @@ namespace ElementaryFunctions{
 
     std::string Log::to_string() const{
         std::string s;
-        s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
+        if (base_ == Constant::e){
+            s = "ln(" + arg_->to_string() + ")";
+        }
+        else{
+            s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
+        }
         return s;
     }
 };
