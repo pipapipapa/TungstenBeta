@@ -404,7 +404,7 @@ std::string Fraction::to_string() const{
 
 // Constant
 const Expression* Constant::e = new Constant;
-const Expression* Constant::pi = double_to_fraction(3.141592653589793);
+const Expression* Constant::pi = new Constant;
 const Expression* Constant::ZERO = new Constant(0);
 const Expression* Constant::ONE = new Constant(1);
 
@@ -891,6 +891,26 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
     return (new operators::Sum(std::move(terms)))->simplify();
 }
 
+const Expression* NewtonMethod::Newton_root(const Expression* func, const std::string variable, double initial_guess = 1.0, double tolerance, int max_iterations) {
+    std::cout<<func->to_string() << "\n";
+    Variable::variables[variable] = double_to_fraction(initial_guess); // Set initial guess
+    for (int i = 0; i < max_iterations; ++i) {
+    double f_x = func->calculate();
+    const Expression* derivative = func->complex_derivative(variable);
+    double f_prime_x = derivative->calculate();
+    delete derivative; 
+    if (std::abs(f_prime_x) < 1e-12) {
+        return nullptr; 
+    }
+    double new_guess = initial_guess - (f_x / f_prime_x);
+    if (std::abs(new_guess - initial_guess) < tolerance) {
+        return double_to_fraction(new_guess);
+    }
+    initial_guess = new_guess;
+    Variable::variables[variable] = new Constant(initial_guess); 
+    }
+    return nullptr; 
+}
 
 bool hasVariables(const Expression* expr){
     if (typeid(*expr) == typeid(Variable)){
@@ -927,7 +947,22 @@ bool hasVariables(const Expression* expr){
     else if (typeid(*expr) == typeid(ElementaryFunctions::Exp)){
         const ElementaryFunctions::Exp* expExpr = static_cast<const ElementaryFunctions::Exp*>(expr);
         return hasVariables(expExpr->get_input()) || hasVariables(expExpr->get_base());
+    } 
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Sin)){
+        const ElementaryFunctions::Sin* sinExpr = static_cast<const ElementaryFunctions::Sin*>(expr);
+        return hasVariables(sinExpr->get_input());
     }
-    // сюда еще тригу
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Cos)){
+        const ElementaryFunctions::Cos* cosExpr = static_cast<const ElementaryFunctions::Cos*>(expr);
+        return hasVariables(cosExpr->get_input());
+    }
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Tan)){
+        const ElementaryFunctions::Tan* tanExpr = static_cast<const ElementaryFunctions::Tan*>(expr);
+        return hasVariables(tanExpr->get_input());
+    }
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Cot)){
+        const ElementaryFunctions::Cot* cotExpr = static_cast<const ElementaryFunctions::Cot*>(expr);
+        return hasVariables(cotExpr->get_input());
+    }
     return false;
 }

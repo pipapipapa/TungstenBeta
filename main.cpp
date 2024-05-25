@@ -1,88 +1,363 @@
 #include "TungstenBeta/TungstenBeta.h"
+#include <gtk/gtk.h>
+
+#include <sstream>
+#include <stack>
+#include <map>
+#include <algorithm>
+#include <cctype>
+#include <queue>
+
+// Global variables for the GTK widgets
+GtkWindow *window;
+GtkEntry *entry;
+GtkLabel *output_label;
+GtkButton *calculate_button;
+GtkButton *find_max_button;
+GtkButton *find_min_button;
+GtkButton *taylor_button;
+GtkButton *newton_button; // New button for Newton's method
+GtkLabel *variable_label;
+GtkEntry *variable_entry;
+GtkEntry *initial_guess_entry; // New entry for the initial guess
+
+// Global variable to store the parsed expression
+const Expression* parsed_expression = nullptr;
+
+// Function to parse the input string and create an Expression object
+
+// Function to construct an Expression from RPN queue
+const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
+    std::stack<const Expression*> expressionStack;
+    while (!rpn.empty()) {
+        std::string token = rpn.front();
+        rpn.pop();
+        if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) {
+            // Number
+            expressionStack.push(new Constant(std::stoll(token)));
+        } else if (token == "e") {
+            expressionStack.push(Constant::e);
+        } else if (token == "pi") {
+            expressionStack.push(Constant::pi);
+        } else if (token == "sin") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Sin(operand));
+        } else if (token == "cos") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Cos(operand));
+        } else if (token == "tan") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Tan(operand));
+        } else if (token == "sqrt") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Power(operand, new operators::Fraction(Constant::ONE, new Constant(2))));
+        } else if (token == "ln") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Log(Constant::e, operand));
+        } else if (token == "log") {
+            const Expression* operand = expressionStack.top();
+            expressionStack.pop();
+            expressionStack.push(new ElementaryFunctions::Log(new Constant(10), operand));
+        } else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
+            // Operator
+            const Expression* rhs = expressionStack.top();
+            expressionStack.pop();
+            const Expression* lhs = expressionStack.top();
+            expressionStack.pop();
+            if (token == "+") {
+                expressionStack.push(new operators::Sum({lhs, rhs}));
+            } else if (token == "-") {
+                expressionStack.push(new operators::Sum({lhs, new operators::Product({new Constant(-1), rhs})}));
+            } else if (token == "*") {
+                expressionStack.push(new operators::Product({lhs, rhs}));
+            } else if (token == "/") {
+                expressionStack.push(new operators::Fraction(lhs, rhs));
+            } else if (token == "^") {
+                if (!hasVariables(rhs)){
+                    expressionStack.push(new ElementaryFunctions::Power(lhs, rhs));
+                }
+                else if (!hasVariables(lhs)){
+                    expressionStack.push(new ElementaryFunctions::Exp(lhs, rhs));
+                }
+            }
+        } else {
+            // Variable
+            expressionStack.push(new Variable(token));
+        }
+    }
+
+    if (expressionStack.empty()) {
+        // Handle error: Empty expression
+        return nullptr;
+    }
+
+    return expressionStack.top();
+}
+
+const Expression* parse_expression(const std::string& input) {
+    std::istringstream iss(input);
+    std::stack<std::string> operatorStack;
+    std::queue<std::string> outputQueue;
+    std::map<std::string, int> operatorPrecedence{
+        {"+", 1}, {"-", 1}, {"*", 2}, {"/", 2}, {"^", 3},
+    };
+
+    std::string token;
+    while (iss >> token) {
+        if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) { // Number
+            outputQueue.push(token);
+        } else if (token == "(") {
+            operatorStack.push(token);
+        } else if (token == ")") {
+            while (!operatorStack.empty() && operatorStack.top() != "(") {
+                outputQueue.push(operatorStack.top());
+                operatorStack.pop();
+            }
+            if (!operatorStack.empty() && operatorStack.top() == "(") {
+                operatorStack.pop(); // Pop the opening parenthesis
+            } else {
+                // Handle error: Mismatched parentheses
+                return nullptr; 
+            }
+        } else if (operatorPrecedence.find(token) != operatorPrecedence.end()) {
+            while (!operatorStack.empty() && operatorPrecedence[token] <= operatorPrecedence[operatorStack.top()] && operatorStack.top() != "(") {
+                outputQueue.push(operatorStack.top());
+                operatorStack.pop();
+            }
+            operatorStack.push(token);
+        } else {
+            // Handle potential variable or function
+            if (token == "e" || token == "pi") { 
+                outputQueue.push(token); // Treat as constants
+            } else if (token == "sin" || token == "cos" || token == "tan" || token == "sqrt" || token == "ln" || token == "log") {
+                // Function, push to operator stack
+                operatorStack.push(token);
+            } else {
+                outputQueue.push(token); // Treat as a variable
+            }
+        }
+    }
+
+    // Pop any remaining operators from the stack
+    while (!operatorStack.empty()) {
+        if (operatorStack.top() == "(" || operatorStack.top() == ")") {
+            // Handle error: Mismatched parentheses
+            return nullptr;
+        }
+        outputQueue.push(operatorStack.top());
+        operatorStack.pop();
+    }
+
+    return construct_expression_from_rpn(outputQueue);
+}
 
 
-int main(int argc, char *argv[]){
-    auto x = new Variable("x");
-    auto y = new Variable("y");
+// Function to update the output label with the result of calculation
+void update_output_label(const Expression* expr) {
+    if (expr) {
+        std::string output = "Result: " + std::to_string(expr->calculate());
+        gtk_label_set_text(output_label, output.c_str());
+    } else {
+        gtk_label_set_text(output_label, "Invalid expression");
+    }
+}
 
-    Variable::variables["x"] = double_to_fraction(1.5);
-    Variable::variables["y"] = double_to_fraction(3.25);
+// Function to calculate the value of the expression
+void on_calculate_button_clicked(GtkButton *button, gpointer user_data) {
+    const char *input_text = gtk_editable_get_text(GTK_EDITABLE (entry));
+    std::string input(input_text);
 
-    auto e = Constant::e;
-    std::cout << e->to_string() << "\n";
+    const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry));
+    std::string variable(variable_text);
 
-    auto sum = *x + *y;
-    std::cout << "Sum: " << sum->to_string() << " = " << sum->calculate() << std::endl;
-    std::cout << std::endl;
-    std::cout << "Sum derivative of x: " << sum->complex_derivative("x")->to_string() << std::endl;
-    std::cout << "Sum derivative of y: " << sum->complex_derivative("y")->to_string() << std::endl;
-    std::cout << std::endl;
+    Variable::variables[variable] = new Constant(0); // Initialize variable
 
-    auto product = *x * *y;
-    std::cout << "Product: " << product->to_string() << " = " << product->calculate() << std::endl;
-    std::cout << std::endl;
-    std::cout << "Product derivative of x: " << product->complex_derivative("x")->to_string() << std::endl;
-    std::cout << "Product derivative of y: " << product->complex_derivative("y")->to_string() << std::endl;
-    std::cout << std::endl;
-    auto expr = new operators::Product({
-        new Constant(5),
-        new ElementaryFunctions::Power(new Variable("x"), new Constant(2))
-    });
+    if (parsed_expression != nullptr) {
+        delete parsed_expression;
+    }
+    parsed_expression = parse_expression(input);
+    update_output_label(parsed_expression);
+}
 
-    auto exprp = new ElementaryFunctions::Power(new ElementaryFunctions::Power(new Variable("x"), new Constant(2)), new Constant(4));
+// Function to find the maximum value of the expression
+void on_find_max_button_clicked(GtkButton *button, gpointer user_data) {
+    if (parsed_expression != nullptr) {
+        const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
+        std::string variable(variable_text);
+        
+        const Expression* derivative = parsed_expression->complex_derivative(variable);
+        if (derivative != nullptr && hasVariables(derivative)) {
+            const Expression* root = NewtonMethod::Newton_root(derivative, variable, 0); 
+            if (root) {
+                Variable::variables[variable] = root;
+                double max_value = parsed_expression->calculate();
+                std::string output = "Maximum value: " + std::to_string(max_value);
+                gtk_label_set_text(output_label, output.c_str());
+                delete root;
+            } else {
+                gtk_label_set_text(output_label, "Failed to find a maximum.");
+            }
+            delete derivative;
+        } else {
+            gtk_label_set_text(output_label, "Expression is not a function of the variable or derivative failed.");
+        }
+    } else {
+        gtk_label_set_text(output_label, "No expression parsed");
+    }
+}
 
-    std::cout << "Expression: " << exprp->simplify()->to_string() << std::endl;
+// Function to find the minimum value of the expression
+void on_find_min_button_clicked(GtkButton *button, gpointer user_data) {
+    if (parsed_expression != nullptr) {
+        const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
+        std::string variable(variable_text);
+        
+        const Expression* derivative = parsed_expression->complex_derivative(variable);
+        if (derivative != nullptr && hasVariables(derivative)) {
+            const Expression* root = NewtonMethod::Newton_root(derivative, variable, 0); 
+            if (root) {
+                Variable::variables[variable] = root;
+                double min_value = parsed_expression->calculate();
+                std::string output = "Minimum value: " + std::to_string(min_value);
+                gtk_label_set_text(output_label, output.c_str());
+                delete root;
+            } else {
+                gtk_label_set_text(output_label, "Failed to find a minimum.");
+            }
+            delete derivative;
+        } else {
+            gtk_label_set_text(output_label, "Expression is not a function of the variable or derivative failed.");
+        }
+    } else {
+        gtk_label_set_text(output_label, "No expression parsed");
+    }
+}
+// Function to generate the Taylor series representation of the expression
+void on_taylor_button_clicked(GtkButton *button, gpointer user_data) {
+    if (parsed_expression != nullptr) {
+        const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
+        std::string variable(variable_text);
+        
+        // TODO: Implement logic to generate the Taylor series representation.
+        // This will involve calling Taylor_series() from TungstenBeta.h.
+        // Update the output label with the Taylor series representation.
+        const Expression* taylor = Taylor_series(parsed_expression, variable, 0);
+        std::string output = "Taylor series: " + taylor->to_string();
+        gtk_label_set_text(output_label, output.c_str());
+        delete taylor;
+    } else {
+        gtk_label_set_text(output_label, "No expression parsed");
+    }
+}
 
+// Function to solve the equation using Newton's method
+void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
+    const char *input_text = gtk_editable_get_text(GTK_EDITABLE (entry));
+    std::string input(input_text);
 
-    auto expr1 = new operators::Fraction(
-        new operators::Sum({
-            new ElementaryFunctions::Log(double_to_fraction(2.71), expr),
-            new ElementaryFunctions::Exp(new Constant(2), x)}),
-        expr);
+    const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry));
+    std::string variable(variable_text);
 
-    std::cout << "Expression: " << expr->to_string() << std::endl;
+    const char *initial_guess_text = gtk_editable_get_text(GTK_EDITABLE (initial_guess_entry));
+    double initial_guess = std::stod(initial_guess_text);
 
-    auto derivative = expr->complex_derivative("x");
-    std::cout << "Derivative: " << derivative->to_string() << std::endl;
+    Variable::variables[variable] = new Constant(0); // Initialize variable
 
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << "Expression: " << expr1->to_string() << std::endl;
-    std::cout << "Expression value: " << expr1->calculate() << std::endl;
+    if (parsed_expression != nullptr) {
+        delete parsed_expression;
+    }
+    parsed_expression = parse_expression(input);
 
-    auto derivative1 = expr1->complex_derivative("x");
-    std::cout << std::endl;
-    std::cout << "Derivative: " << derivative1->to_string() << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
+    if (parsed_expression) {
+        const Expression* root = NewtonMethod::Newton_root(parsed_expression, variable, initial_guess); // Use correct namespace
+        if (root) {
+            std::string output = "Root found: " + root->to_string();
+            gtk_label_set_text(output_label, output.c_str());
+            delete root;
+        } else {
+            gtk_label_set_text(output_label, "Newton's method failed to converge.");
+        }
+    } else {
+        gtk_label_set_text(output_label, "Invalid expression");
+    }
+}
 
-    auto z = new Variable("z");
-    Variable::variables["z"] = expr1;
-    std::cout << "z value: " << z->calculate() << std::endl;
-    std::cout << std::endl;
-    
+void activate(GtkApplication* app, gpointer user_data) {
+    // Create the main window 
+    window = GTK_WINDOW(gtk_window_new());
+    gtk_window_set_title(window, "Tungsten Beta Calculator");
+    gtk_window_set_default_size(window, 400, 300);
+    gtk_window_set_resizable(window, TRUE);
 
-    auto ex = new operators::Product({
-        new Constant(5),
-        new ElementaryFunctions::Exp(Constant::e, new Variable("y")) // Constant(2) -> e
-    });
-    auto T = Taylor_series(ex, "y", y->calculate()); // 47.5683
+    // Create a vertical box container
+    GtkBox *vbox = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 10));
 
-    std::cout << T->to_string();
-    std::cout << std::endl;
-    std::cout << T->calculate();
-    std::cout << std::endl;
+    // Create the input entry
+    entry = GTK_ENTRY(gtk_entry_new());
+    gtk_entry_set_placeholder_text(entry, "Enter your expression");
+    gtk_box_append(vbox, GTK_WIDGET(entry));
 
+    // Create the output label
+    output_label = GTK_LABEL(gtk_label_new("Output:"));
+    gtk_box_append(vbox, GTK_WIDGET(output_label));
 
-    delete x;
-    delete y;
-    delete sum;
-    delete product;
-    delete expr;
-    delete expr1;
-    delete derivative;
-    delete derivative1;
+    // Create the calculate button
+    calculate_button = GTK_BUTTON(gtk_button_new_with_label("Calculate"));
+    g_signal_connect(calculate_button, "clicked", G_CALLBACK(on_calculate_button_clicked), NULL);
+    gtk_box_append(vbox, GTK_WIDGET(calculate_button));
 
+    // Create the find max button
+    find_max_button = GTK_BUTTON(gtk_button_new_with_label("Find Max"));
+    g_signal_connect(find_max_button, "clicked", G_CALLBACK(on_find_max_button_clicked), NULL);
+    gtk_box_append(vbox, GTK_WIDGET(find_max_button));
 
-    return 0;
+    // Create the find min button
+    find_min_button = GTK_BUTTON(gtk_button_new_with_label("Find Min"));
+    g_signal_connect(find_min_button, "clicked", G_CALLBACK(on_find_min_button_clicked), NULL);
+    gtk_box_append(vbox, GTK_WIDGET(find_min_button));
+
+    // Create the Taylor series button
+    taylor_button = GTK_BUTTON(gtk_button_new_with_label("Taylor Series"));
+    g_signal_connect(taylor_button, "clicked", G_CALLBACK(on_taylor_button_clicked), NULL);
+    gtk_box_append(vbox, GTK_WIDGET(taylor_button));
+
+    // Create the Newton's method button
+    newton_button = GTK_BUTTON(gtk_button_new_with_label("Find Root"));
+    g_signal_connect(newton_button, "clicked", G_CALLBACK(on_newton_button_clicked), NULL);
+    gtk_box_append(vbox, GTK_WIDGET(newton_button));
+
+    // Create the variable label and entry
+    variable_label = GTK_LABEL(gtk_label_new("Variable:"));
+    gtk_box_append(vbox, GTK_WIDGET(variable_label));
+    variable_entry = GTK_ENTRY(gtk_entry_new());
+    gtk_entry_set_placeholder_text(variable_entry, "x");
+    gtk_box_append(vbox, GTK_WIDGET(variable_entry));
+
+    // Create the initial guess entry
+    initial_guess_entry = GTK_ENTRY(gtk_entry_new());
+    gtk_entry_set_placeholder_text(initial_guess_entry, "Initial Guess");
+    gtk_box_append(vbox, GTK_WIDGET(initial_guess_entry));
+
+    // Set the box container as the child of the window
+    gtk_window_set_child(window, GTK_WIDGET(vbox));
+
+    // Show the window
+    gtk_window_present(window);
+
+    gtk_window_set_application(GTK_WINDOW(window), GTK_APPLICATION(app));
+}
+
+int main(int argc, char *argv[]) {
+    // Create the application
+    GtkApplication *app;
+    app = gtk_application_new("org.gtk.example", G_APPLICATION_DEFAULT_FLAGS); 
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    int status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
+    return status;
 }

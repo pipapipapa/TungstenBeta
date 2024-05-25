@@ -1,19 +1,33 @@
 cmake_minimum_required(VERSION 3.23)
 
-set(project "TungstenBetaDebug")
-project(${project})
+project(TungstenBetaDebug)
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(${project}_SOURCES
+# Sources for the main executable
+set(TungstenBetaDebug_SOURCES
         main.cpp)
 
+# Add TungstenBeta as a subdirectory (assuming it's a library)
 add_subdirectory(TungstenBeta)
 
-set(${project}_SOURCE_LIST
-        ${${project}_SOURCES})
+# Find GTK+ and PkgConfig
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK4 REQUIRED gtk4)
 
-add_executable(${project}
-        ${${project}_SOURCE_LIST})
+# Set include and library directories for GTK+
+include_directories(${GTK4_INCLUDE_DIRS})
+link_directories(${GTK4_LIB_DIRS}) 
 
-target_link_libraries(${project} TungstenBeta)
+# Add additional definitions if necessary (from GTK4_CFLAGS_OTHER)
+# add_definitions(${GTK4_CFLAGS_OTHER})
+
+# Build the executable
+add_executable(TungstenBetaDebug 
+        ${TungstenBetaDebug_SOURCES})
+
+# Link the libraries
+target_link_libraries(TungstenBetaDebug
+        TungstenBeta 
+        ${GTK4_LIBRARIES})
