@@ -29,6 +29,11 @@ int main(int argc, char *argv[]){
         new ElementaryFunctions::Power(new Variable("x"), new Constant(2))
     });
 
+    auto exprp = new ElementaryFunctions::Power(new ElementaryFunctions::Power(new Variable("x"), new Constant(2)), new Constant(4));
+
+    std::cout << "Expression: " << exprp->simplify()->to_string() << std::endl;
+
+
     auto expr1 = new operators::Fraction(
         new operators::Sum({
             new ElementaryFunctions::Log(double_to_fraction(2.71), expr),

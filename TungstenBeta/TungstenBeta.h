@@ -14,6 +14,7 @@ public:
     virtual double calculate() const = 0;
     virtual const Expression* complex_derivative(const std::string& variable) const = 0;
     virtual const Expression* copy() const = 0;
+    virtual const Expression* plug_variable(const std::string& variable) const = 0;
     virtual std::string to_string() const = 0;
     virtual const Expression* simplify() const = 0;
     virtual ~Expression() = default;
@@ -38,6 +39,7 @@ namespace operators{
         double calculate() const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
+        const Expression* plug_variable(const std::string& variable) const override;
         const Expression* simplify() const override;
         std::string to_string() const override;
     };
@@ -56,6 +58,7 @@ namespace operators{
 
         double calculate() const override;
         const Expression* simplify() const override;
+        const Expression* plug_variable(const std::string& variable) const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -76,6 +79,7 @@ namespace operators{
         const Expression* get_divisor() const { return divisor_; };
 
         const Expression* simplify() const override;
+        const Expression* plug_variable(const std::string& variable) const override;
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -97,6 +101,7 @@ public:
     double calculate() const override;
     int get_exact_value() const;
     const Expression* complex_derivative(const std::string& variable) const override;
+    const Expression* plug_variable(const std::string& variable) const override;
     const Expression* copy() const override;
     const Expression* simplify() const override;
     std::string to_string() const override;
@@ -116,6 +121,7 @@ public:
     double calculate() const override;
     std::string get_name() const { return name_; };
 
+    const Expression* plug_variable(const std::string& variable) const override;
     const Expression* complex_derivative(const std::string& variable) const override;
     const Expression* simplify() const override;
 
@@ -159,6 +165,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
+        const Expression* plug_variable(const std::string& variable) const override;
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -181,6 +188,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
+        const Expression* plug_variable(const std::string& variable) const override;
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
@@ -204,6 +212,7 @@ namespace ElementaryFunctions{
         const Expression* get_input() const override;
 
         // expression
+        const Expression* plug_variable(const std::string& variable) const override;
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;

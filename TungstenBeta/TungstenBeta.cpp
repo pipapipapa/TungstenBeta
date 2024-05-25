@@ -99,6 +99,17 @@ const Expression* Sum::complex_derivative(const std::string& variable) const{
     return (new Sum(std::move(derivedTerms)))->simplify();
 }
 
+const Expression* Sum::plug_variable(const std::string& variable) const{
+    std::vector<const Expression*> updatedTerms;
+
+    for (const Expression* term : terms_){
+        updatedTerms.push_back(term->plug_variable(variable));
+    }
+
+    return (new Sum(std::move(updatedTerms)))->simplify();
+}
+
+
 std::string Sum::to_string() const{
     std::string s;
     if (terms_.size() == 1){
@@ -287,6 +298,16 @@ const Expression* Product::complex_derivative(const std::string& variable) const
     return (new Sum(std::move(derivedFactors)))->simplify();
 }
 
+const Expression* Product::plug_variable(const std::string& variable) const{
+    std::vector<const Expression*> updatedTerms;
+
+    for (const Expression* factor : factors_){
+        updatedTerms.push_back(factor->plug_variable(variable));
+    }
+
+    return (new Product(std::move(updatedTerms)))->simplify();
+}
+
 std::string Product::to_string() const{
     std::string s = "";
     if (factors_.size() == 1){
@@ -366,6 +387,10 @@ const Expression* Fraction::complex_derivative(const std::string& variable) cons
     return (new Fraction(numerator, denominator))->simplify();
 }
 
+const Expression* Fraction::plug_variable(const std::string& variable) const{
+    return (new Fraction(dividend_->plug_variable(variable), divisor_->plug_variable(variable)))->simplify();
+}
+
 std::string Fraction::to_string() const{
     if (this == Constant::e){
         return "e";
@@ -405,6 +430,9 @@ const Expression* Constant::simplify() const{
     return this;
 }
 
+const Expression* Constant::plug_variable(const std::string& variable) const{
+    return this;
+}
 
 const Expression* Constant::copy() const{
     return new Constant(value_);
@@ -453,6 +481,15 @@ const Expression* Variable::complex_derivative(const std::string& variable) cons
     }
 }
 
+const Expression* Variable::plug_variable(const std::string& variable) const{
+    if (variable == name_){
+        return Variable::variables[name_];
+    } 
+    else{
+        return this;
+    }
+}
+
 const Expression* Variable::copy() const{
     return new Variable(name_);
 }
@@ -490,6 +527,18 @@ const Expression* Power::copy() const{
 }
 
 const Expression* Power::simplify() const{
+    if (base_ == Constant::ONE){
+        return Constant::ONE;
+    }
+    if ((base_ == Constant::ZERO) && (power_ != Constant::ZERO)){
+        return Constant::ZERO;
+    }
+    if (power_ == Constant::ONE){
+        return base_;
+    }
+    if (typeid(*base_) == typeid(Power)){
+        return new Exp(static_cast<const Power*>(base_)->get_base()->simplify(), (new operators::Product({power_, static_cast<const Power*>(base_)->get_power()}))->simplify());
+    }
     return new Power(base_->simplify(), power_->simplify());
 }
 
@@ -504,6 +553,10 @@ const Expression* Power::derivative(const std::string& variable) const{
             new Power(base_, new Constant(power_->calculate() - 1))
         }))->simplify();
     }
+}
+
+const Expression* Power::plug_variable(const std::string& variable) const{
+    return (new Power(base_->plug_variable(variable), power_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Power::get_input() const{
@@ -537,6 +590,18 @@ const Expression* Exp::copy() const{
 }
 
 const Expression* Exp::simplify() const{
+    if (base_ == Constant::ONE){
+        return Constant::ONE;
+    }
+    if ((base_ == Constant::ZERO) && (power_ != Constant::ZERO)){
+        return Constant::ZERO;
+    }
+    if (power_ == Constant::ONE){
+        return base_;
+    }
+    if (typeid(*base_) == typeid(Power)){
+        return new Exp(static_cast<const Power*>(base_)->get_base()->simplify(), (new operators::Product({power_, static_cast<const Power*>(base_)->get_power()}))->simplify());
+    }
     return new Exp(base_->simplify(), power_->simplify());
 }
 
@@ -545,6 +610,10 @@ const Expression* Exp::derivative(const std::string& variable) const{
             new Exp(base_, power_),
             new Log(Constant::e, base_)
         }))->simplify();
+}
+
+const Expression* Exp::plug_variable(const std::string& variable) const{
+    return (new Exp(base_->plug_variable(variable), power_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Exp::get_input() const{
@@ -583,6 +652,10 @@ const Expression* Log::derivative(const std::string& variable) const{
             arg_,
             new Log(Constant::e, base_)
         })))->simplify();
+}
+
+const Expression* Log::plug_variable(const std::string& variable) const{
+    return (new Log(arg_->plug_variable(variable), base_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Log::get_input() const{
@@ -654,13 +727,13 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
     long long STEPS = 5;
     for (long long i = 1; i < STEPS; ++i){
         fNDerivative.push_back((fNDerivative[i - 1]->complex_derivative(variable_name))->simplify());
-
-        const Expression* k = new operators::Fraction(double_to_fraction(fNDerivative[i]->calculate()), new operators::Product({new Constant(i), double_to_fraction(fNDerivative[i - 1]->calculate())}));
+        //std::cout << fNDerivative[i]->calculate() << "     " << double_to_fraction(fNDerivative[i]->calculate())->to_string() << "\n";
+        const Expression* k = new operators::Fraction(fNDerivative[i]->plug_variable(variable_name), new operators::Product({new Constant(i), fNDerivative[i - 1]->plug_variable(variable_name)}));
         
         const Expression* term = new operators::Product({
             k,
             new operators::Sum({new Variable(variable_name), new operators::Product({new Constant(-1), double_to_fraction(point)})}),
-            terms[i - 1]
+            terms[i - 1]->plug_variable(variable_name)
         });
         terms.push_back(term->simplify());
         std::cout << std::endl;
