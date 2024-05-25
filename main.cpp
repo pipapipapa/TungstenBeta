@@ -64,9 +64,9 @@ int main(int argc, char *argv[]){
 
     auto ex = new operators::Product({
         new Constant(5),
-        new ElementaryFunctions::Exp(new Constant(2), new Variable("y"))
+        new ElementaryFunctions::Exp(Constant::e, new Variable("y")) // Constant(2) -> e
     });
-    auto T = Taylor_series(ex, "y", 0); // 47.5683
+    auto T = Taylor_series(ex, "y", y->calculate()); // 47.5683
 
     std::cout << T->to_string();
     std::cout << std::endl;

@@ -155,7 +155,7 @@ double Product::calculate() const{
     return result;
 }
 
-const Expression* Product::simplify() const {
+const Expression* Product::simplify() const{
     std::vector<const Expression*> simplifiedFactors;
     std::vector<const Expression*> openedFactors;
     std::vector<const Expression*> fractions;
@@ -226,13 +226,13 @@ const Expression* Product::simplify() const {
     }
 
     for (const Expression* factor : finalFactors){
-        if (typeid(*factor) == typeid(ElementaryFunctions::Power)) {
+        if (typeid(*factor) == typeid(ElementaryFunctions::Power)){
             const ElementaryFunctions::Power* powExpr = static_cast<const ElementaryFunctions::Power*>(factor);
             const Expression* base = powExpr->get_base();
             const Expression* power = powExpr->get_power();
             std::string key = base->to_string();
 
-            if (powers.find(key) == powers.end()) { 
+            if (powers.find(key) == powers.end()){ 
                 powers[key] = std::make_pair(base, Constant::ZERO);
             }
 
@@ -253,7 +253,7 @@ const Expression* Product::simplify() const {
         finalFactors.push_back(new Constant(constantBuff));
     }
 
-    for (auto it = powers.begin(); it != powers.end(); ++it) {
+    for (auto it = powers.begin(); it != powers.end(); ++it){
         const Expression* base = it->second.first;
         const Expression* power = it->second.second->simplify();
         //std::cout << it->first << " : " << base->to_string() << " : " << power->to_string() << "\n";
@@ -347,11 +347,11 @@ const Expression* Fraction::simplify() const{
     if (simplifiedDivisor == Constant::ONE){
         return simplifiedDividend;
     }
-    if (simplifiedDivisor == Constant::ZERO){
+    if (simplifiedDividend == Constant::ZERO){
         return Constant::ZERO;
     }
 
-    if ((typeid(*simplifiedDividend) == typeid(Constant)) && (typeid(*simplifiedDivisor) == typeid(Constant)) && (simplifiedDividend != Constant::e) && (simplifiedDivisor != Constant::e)){
+    if ((typeid(*simplifiedDividend) == typeid(Constant)) && (simplifiedDividend != Constant::e) && (typeid(*simplifiedDivisor) == typeid(Constant)) && (simplifiedDivisor != Constant::e)){
 
         int num = static_cast<const Constant*>(simplifiedDividend)->get_exact_value();
         int den = static_cast<const Constant*>(simplifiedDivisor)->get_exact_value();
@@ -446,7 +446,7 @@ std::string Constant::to_string() const{
     if (this == Constant::e){
         return "e";
     }
-    if (value_ > 0){
+    if (value_ >= 0){
         return std::to_string(value_);
     }
     else{
@@ -527,17 +527,17 @@ const Expression* Power::copy() const{
 }
 
 const Expression* Power::simplify() const{
-    if (base_ == Constant::ONE){
+    if (base_->simplify() == Constant::ONE){
         return Constant::ONE;
     }
-    if ((base_ == Constant::ZERO) && (power_ != Constant::ZERO)){
+    if ((base_->simplify() == Constant::ZERO) && (power_->simplify() != Constant::ZERO)){
         return Constant::ZERO;
     }
-    if (power_ == Constant::ONE){
-        return base_;
+    if (power_->simplify() == Constant::ONE){
+        return base_->simplify();
     }
     if (typeid(*base_) == typeid(Power)){
-        return new Exp(static_cast<const Power*>(base_)->get_base()->simplify(), (new operators::Product({power_, static_cast<const Power*>(base_)->get_power()}))->simplify());
+        return new Power(static_cast<const Power*>(base_)->get_base(), (new operators::Product({power_, static_cast<const Power*>(base_)->get_power()}))->simplify());
     }
     return new Power(base_->simplify(), power_->simplify());
 }
@@ -547,7 +547,7 @@ const Expression* Power::derivative(const std::string& variable) const{
         return Constant::ONE;
     } 
     else
-    {
+   {
         return (new operators::Product({
             new Constant(power_->calculate()),
             new Power(base_, new Constant(power_->calculate() - 1))
@@ -556,7 +556,7 @@ const Expression* Power::derivative(const std::string& variable) const{
 }
 
 const Expression* Power::plug_variable(const std::string& variable) const{
-    return (new Power(base_->plug_variable(variable), power_->plug_variable(variable)))->simplify();
+    return (new Power(base_->plug_variable(variable)->simplify(), power_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Power::get_input() const{
@@ -590,14 +590,14 @@ const Expression* Exp::copy() const{
 }
 
 const Expression* Exp::simplify() const{
-    if (base_ == Constant::ONE){
+    if (base_->simplify() == Constant::ONE){
         return Constant::ONE;
     }
-    if ((base_ == Constant::ZERO) && (power_ != Constant::ZERO)){
+    if ((base_->simplify() == Constant::ZERO) && (power_->simplify() != Constant::ZERO)){
         return Constant::ZERO;
     }
-    if (power_ == Constant::ONE){
-        return base_;
+    if (power_->simplify() == Constant::ONE){
+        return base_->simplify();
     }
     if (typeid(*base_) == typeid(Power)){
         return new Exp(static_cast<const Power*>(base_)->get_base()->simplify(), (new operators::Product({power_, static_cast<const Power*>(base_)->get_power()}))->simplify());
@@ -613,7 +613,7 @@ const Expression* Exp::derivative(const std::string& variable) const{
 }
 
 const Expression* Exp::plug_variable(const std::string& variable) const{
-    return (new Exp(base_->plug_variable(variable), power_->plug_variable(variable)))->simplify();
+    return (new Exp(base_->plug_variable(variable)->simplify(), power_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Exp::get_input() const{
@@ -638,10 +638,13 @@ double Log::calculate() const{
 }
 
 const Expression* Log::copy() const{
-    return (new Log(arg_, base_))->simplify();
+    return (new Log(base_, arg_))->simplify();
 }
 
 const Expression* Log::simplify() const{
+    if (base_->to_string() == arg_->to_string()){
+        return Constant::ONE;
+    }
     return new Log(base_->simplify(), arg_->simplify());
 }
 
@@ -655,7 +658,7 @@ const Expression* Log::derivative(const std::string& variable) const{
 }
 
 const Expression* Log::plug_variable(const std::string& variable) const{
-    return (new Log(arg_->plug_variable(variable), base_->plug_variable(variable)))->simplify();
+    return (new Log(base_->plug_variable(variable), arg_->plug_variable(variable)))->simplify();
 }
 
 const Expression* Log::get_input() const{
@@ -671,6 +674,148 @@ std::string Log::to_string() const{
         s = "log[" + base_->to_string() + ", " + arg_->to_string() + "]";
     }
     return s;
+}
+
+// Sin
+Sin::Sin(const Expression* arg){
+    arg_ = arg;
+}
+
+double Sin::calculate() const{
+    return std::sin(arg_->calculate());
+}
+
+const Expression* Sin::copy() const{
+    return (new Sin(arg_))->simplify();
+}
+
+const Expression* Sin::simplify() const{
+    return new Sin(arg_->simplify());
+}
+
+const Expression* Sin::derivative(const std::string& variable) const{
+    return (new Cos(arg_))->simplify();
+}
+
+const Expression* Sin::plug_variable(const std::string& variable) const{
+    return (new Sin(arg_->plug_variable(variable)))->simplify();
+}
+
+const Expression* Sin::get_input() const{
+    return arg_;
+}
+
+std::string Sin::to_string() const{
+    return "Sin(" + arg_->to_string() + ")";
+}
+
+
+// Cos
+Cos::Cos(const Expression* arg){
+    arg_ = arg;
+}
+
+double Cos::calculate() const{
+    return cos(arg_->calculate());
+}
+
+const Expression* Cos::copy() const{
+    return (new Cos(arg_))->simplify();
+}
+
+const Expression* Cos::simplify() const{
+    return new Cos(arg_->simplify());
+}
+
+const Expression* Cos::derivative(const std::string& variable) const{
+    return (new operators::Product({new Constant(-1), new Sin(arg_)}))->simplify();
+}
+
+const Expression* Cos::plug_variable(const std::string& variable) const{
+    return (new Cos(arg_->plug_variable(variable)))->simplify();
+}
+
+const Expression* Cos::get_input() const{
+    return arg_;
+}
+
+std::string Cos::to_string() const{
+    return "Cos(" + arg_->to_string() + ")";
+}
+
+
+// Tan
+Tan::Tan(const Expression* arg){
+    arg_ = arg;
+}
+
+double Tan::calculate() const{
+    return tan(arg_->calculate());
+}
+
+const Expression* Tan::copy() const{
+    return (new Tan(arg_))->simplify();
+}
+
+const Expression* Tan::simplify() const{
+    return new Tan(arg_->simplify());
+}
+
+const Expression* Tan::derivative(const std::string& variable) const{
+    return (new operators::Fraction(
+        Constant::ONE,
+        new Power(new Cos(arg_), new Constant(2))))->simplify();
+}
+
+const Expression* Tan::plug_variable(const std::string& variable) const{
+    return (new Tan(arg_->plug_variable(variable)))->simplify();
+}
+
+const Expression* Tan::get_input() const{
+    return arg_;
+}
+
+std::string Tan::to_string() const{
+    return "tan(" + arg_->to_string() + ")";
+}
+
+
+// Cot
+Cot::Cot(const Expression* arg){
+    arg_ = arg;
+}
+
+double Cot::calculate() const{
+    return 1 / tan(arg_->calculate());
+}
+
+const Expression* Cot::copy() const{
+    return (new Cot(arg_))->simplify();
+}
+
+const Expression* Cot::simplify() const{
+    return new Cot(arg_->simplify());
+}
+
+const Expression* Cot::derivative(const std::string& variable) const{
+    return (new operators::Product({
+        new Constant(-1),
+        new operators::Fraction(
+            Constant::ONE,
+            new Power(new Sin(arg_), new Constant(2)))
+    }))->simplify();
+}
+
+const Expression* Cot::plug_variable(const std::string& variable) const{
+    return (new Cot(arg_->plug_variable(variable)))->simplify();
+}
+
+const Expression* Cot::get_input() const{
+    return arg_;
+}
+
+std::string Cot::to_string() const{
+    return "cot(" + arg_->to_string() + ")";
 }
 };
 
@@ -748,38 +893,38 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
 
 
 bool hasVariables(const Expression* expr){
-    if (typeid(*expr) == typeid(Variable)) {
+    if (typeid(*expr) == typeid(Variable)){
         return true;
     }
-    else if (typeid(*expr) == typeid(operators::Sum)) {
+    else if (typeid(*expr) == typeid(operators::Sum)){
         const operators::Sum* sumExpr = static_cast<const operators::Sum*>(expr);
-        for (const Expression* term : sumExpr->get_terms()) {
-            if (hasVariables(term)) {
+        for (const Expression* term : sumExpr->get_terms()){
+            if (hasVariables(term)){
                 return true;
             }
         }
     }
-    else if (typeid(*expr) == typeid(operators::Product)) {
+    else if (typeid(*expr) == typeid(operators::Product)){
         const operators::Product* prodExpr = static_cast<const operators::Product*>(expr);
-        for (const Expression* factor : prodExpr->get_factors()) {
-            if (hasVariables(factor)) {
+        for (const Expression* factor : prodExpr->get_factors()){
+            if (hasVariables(factor)){
                 return true;
             }
         }
     } 
-    else if (typeid(*expr) == typeid(operators::Fraction)) {
+    else if (typeid(*expr) == typeid(operators::Fraction)){
         const operators::Fraction* fracExpr = static_cast<const operators::Fraction*>(expr);
         return hasVariables(fracExpr->get_dividend()) || hasVariables(fracExpr->get_divisor());
     } 
-    else if (typeid(*expr) == typeid(ElementaryFunctions::Power)) {
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Power)){
         const ElementaryFunctions::Power* powExpr = static_cast<const ElementaryFunctions::Power*>(expr);
         return hasVariables(powExpr->get_input()) || hasVariables(powExpr->get_power());
     } 
-    else if (typeid(*expr) == typeid(ElementaryFunctions::Log)) {
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Log)){
         const ElementaryFunctions::Log* logExpr = static_cast<const ElementaryFunctions::Log*>(expr);
         return hasVariables(logExpr->get_input()) || hasVariables(logExpr->get_base());
     }
-    else if (typeid(*expr) == typeid(ElementaryFunctions::Exp)) {
+    else if (typeid(*expr) == typeid(ElementaryFunctions::Exp)){
         const ElementaryFunctions::Exp* expExpr = static_cast<const ElementaryFunctions::Exp*>(expr);
         return hasVariables(expExpr->get_input()) || hasVariables(expExpr->get_base());
     }
