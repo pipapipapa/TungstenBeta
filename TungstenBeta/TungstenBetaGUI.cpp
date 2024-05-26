@@ -34,49 +34,50 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
         if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) {
             // Number
             expressionStack.push(new Constant(std::stoll(token)));
-        } else if (token == "e") {
+        } 
+        else if (token == "e") {
             expressionStack.push(Constant::e);
-        } else if (token == "pi") {
+        } 
+        else if (token == "pi") {
             expressionStack.push(Constant::pi);
-        } else if (token == "sin") {
+        } 
+        else if (token == "sin") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Sin(operand));
-        } else if (token == "cos") {
+        } 
+        else if (token == "cos") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Cos(operand));
-        } else if (token == "tan") {
+        } 
+        else if (token == "tan") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Tan(operand));
-        } else if (token == "sqrt") {
+        } 
+        else if (token == "sqrt") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Power(operand, new operators::Fraction(Constant::ONE, new Constant(2))));
-        } else if (token == "ln") {
+        } 
+        else if (token == "ln") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Log(Constant::e, operand));
-        } else if (token == "log") {
+        } 
+        else if (token == "lg") {
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
             expressionStack.push(new ElementaryFunctions::Log(new Constant(10), operand));
-        } else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
+        } 
+        else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
             // Operator
             const Expression* rhs = expressionStack.top();
             expressionStack.pop();
             const Expression* lhs = expressionStack.top();
             expressionStack.pop();
-            if (token == "+") {
-                expressionStack.push(new operators::Sum({lhs, rhs}));
-            } else if (token == "-") {
-                expressionStack.push(new operators::Sum({lhs, new operators::Product({new Constant(-1), rhs})}));
-            } else if (token == "*") {
-                expressionStack.push(new operators::Product({lhs, rhs}));
-            } else if (token == "/") {
-                expressionStack.push(new operators::Fraction(lhs, rhs));
-            } else if (token == "^") {
+            if (token == "^") {
                 if (!hasVariables(rhs)){
                     expressionStack.push(new ElementaryFunctions::Power(lhs, rhs));
                 }
@@ -84,7 +85,20 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
                     expressionStack.push(new ElementaryFunctions::Exp(lhs, rhs));
                 }
             }
-        } else {
+            else if (token == "/") {
+                expressionStack.push(new operators::Fraction(lhs, rhs));
+            }
+            else if (token == "*") {
+                expressionStack.push(new operators::Product({lhs, rhs}));
+            } 
+            else if (token == "-") {
+                expressionStack.push(new operators::Sum({lhs, new operators::Product({new Constant(-1), rhs})}));
+            }
+            else if (token == "+") {
+                expressionStack.push(new operators::Sum({lhs, rhs}));
+            }
+        } 
+        else {
             // Variable
             expressionStack.push(new Variable(token));
         }
@@ -102,7 +116,9 @@ const Expression* parse_expression(const std::string& input) {
     std::stack<std::string> operatorStack;
     std::queue<std::string> outputQueue;
     std::map<std::string, int> operatorPrecedence{
-        {"+", 1}, {"-", 1}, {"*", 2}, {"/", 2}, {"^", 3},
+        {"^", 1},
+        {"*", 2}, {"/", 2},
+        {"+", 3}, {"-", 3},
     };
 
     std::string token;
@@ -122,7 +138,7 @@ const Expression* parse_expression(const std::string& input) {
                 return nullptr; 
             }
         } else if (operatorPrecedence.find(token) != operatorPrecedence.end()) {
-            while (!operatorStack.empty() && operatorPrecedence[token] <= operatorPrecedence[operatorStack.top()] && operatorStack.top() != "(") {
+            while (!operatorStack.empty() && operatorPrecedence[token] >= operatorPrecedence[operatorStack.top()] && operatorStack.top() != "(") {
                 outputQueue.push(operatorStack.top());
                 operatorStack.pop();
             }
