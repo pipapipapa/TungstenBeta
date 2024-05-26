@@ -33,16 +33,13 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
         std::cout << token << " ";
         rpn.pop();
 
-        // Handle numbers enclosed in parentheses
         if (token.front() == '(' && token.back() == ')') {
-            // Extract the number from the parentheses
             std::string number = token.substr(1, token.length() - 2);
 
-            // If it's a valid number, create a Constant expression
             if (std::isdigit(number[0]) || (number[0] == '-' && number.length() > 1 && std::isdigit(number[1]))) {
                 expressionStack.push(new Constant(std::stoll(number)));
             } else {
-                return nullptr; // Invalid expression
+                return nullptr;
             }
         } else if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) {
             // Number
@@ -105,7 +102,7 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
     }
 
     if (expressionStack.size() != 1) {
-        return nullptr; // Invalid RPN expression
+        return nullptr;
     }
 
     return expressionStack.top();
@@ -250,8 +247,6 @@ void on_taylor_button_clicked(GtkButton *button, gpointer user_data) {
         std::string variable(variable_text);
         
         // TODO: Implement logic to generate the Taylor series representation.
-        // This will involve calling Taylor_series() from TungstenBeta.h.
-        // Update the output label with the Taylor series representation.
         const Expression* taylor = Taylor_series(parsed_expression, variable, 0);
         std::string output = "Taylor series: " + taylor->to_string();
         gtk_label_set_text(output_label, output.c_str());
