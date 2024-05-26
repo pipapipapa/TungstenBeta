@@ -8,7 +8,6 @@
 #include <cctype>
 #include <queue>
 
-// Global variables for the GTK widgets
 GtkWindow *window;
 GtkEntry *entry;
 GtkLabel *output_label;
@@ -16,17 +15,15 @@ GtkButton *calculate_button;
 GtkButton *find_max_button;
 GtkButton *find_min_button;
 GtkButton *taylor_button;
-GtkButton *newton_button; // New button for Newton's method
+GtkButton *newton_button;
 GtkLabel *variable_label;
 GtkEntry *variable_entry;
-GtkEntry *initial_guess_entry; // New entry for the initial guess
+GtkEntry *initial_guess_entry;
 
-// Global variable to store the parsed expression
+
 const Expression* parsed_expression = nullptr;
 
-// Function to parse the input string and create an Expression object
 
-// Function to construct an Expression from RPN queue
 const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
     std::stack<const Expression*> expressionStack;
     while (!rpn.empty()) {
@@ -92,7 +89,6 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
     }
 
     if (expressionStack.empty()) {
-        // Handle error: Empty expression
         return nullptr;
     }
 
@@ -119,9 +115,8 @@ const Expression* parse_expression(const std::string& input) {
                 operatorStack.pop();
             }
             if (!operatorStack.empty() && operatorStack.top() == "(") {
-                operatorStack.pop(); // Pop the opening parenthesis
+                operatorStack.pop();
             } else {
-                // Handle error: Mismatched parentheses
                 return nullptr; 
             }
         } else if (operatorPrecedence.find(token) != operatorPrecedence.end()) {
@@ -131,22 +126,19 @@ const Expression* parse_expression(const std::string& input) {
             }
             operatorStack.push(token);
         } else {
-            // Handle potential variable or function
             if (token == "e" || token == "pi") { 
-                outputQueue.push(token); // Treat as constants
+                outputQueue.push(token); // constants
             } else if (token == "sin" || token == "cos" || token == "tan" || token == "sqrt" || token == "ln" || token == "log") {
-                // Function, push to operator stack
+                // Function
                 operatorStack.push(token);
             } else {
-                outputQueue.push(token); // Treat as a variable
+                outputQueue.push(token); // variable
             }
         }
     }
 
-    // Pop any remaining operators from the stack
     while (!operatorStack.empty()) {
         if (operatorStack.top() == "(" || operatorStack.top() == ")") {
-            // Handle error: Mismatched parentheses
             return nullptr;
         }
         outputQueue.push(operatorStack.top());
@@ -157,7 +149,6 @@ const Expression* parse_expression(const std::string& input) {
 }
 
 
-// Function to update the output label with the result of calculation
 void update_output_label(const Expression* expr) {
     if (expr) {
         std::string output = "Result: " + std::to_string(expr->calculate());
@@ -167,7 +158,7 @@ void update_output_label(const Expression* expr) {
     }
 }
 
-// Function to calculate the value of the expression
+
 void on_calculate_button_clicked(GtkButton *button, gpointer user_data) {
     const char *input_text = gtk_editable_get_text(GTK_EDITABLE (entry));
     std::string input(input_text);
@@ -175,7 +166,7 @@ void on_calculate_button_clicked(GtkButton *button, gpointer user_data) {
     const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry));
     std::string variable(variable_text);
 
-    Variable::variables[variable] = new Constant(0); // Initialize variable
+    Variable::variables[variable] = new Constant(0);
 
     if (parsed_expression != nullptr) {
         delete parsed_expression;
@@ -184,7 +175,7 @@ void on_calculate_button_clicked(GtkButton *button, gpointer user_data) {
     update_output_label(parsed_expression);
 }
 
-// Function to find the maximum value of the expression
+
 void on_find_max_button_clicked(GtkButton *button, gpointer user_data) {
     if (parsed_expression != nullptr) {
         const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
@@ -211,7 +202,7 @@ void on_find_max_button_clicked(GtkButton *button, gpointer user_data) {
     }
 }
 
-// Function to find the minimum value of the expression
+
 void on_find_min_button_clicked(GtkButton *button, gpointer user_data) {
     if (parsed_expression != nullptr) {
         const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
@@ -237,7 +228,8 @@ void on_find_min_button_clicked(GtkButton *button, gpointer user_data) {
         gtk_label_set_text(output_label, "No expression parsed");
     }
 }
-// Function to generate the Taylor series representation of the expression
+
+
 void on_taylor_button_clicked(GtkButton *button, gpointer user_data) {
     if (parsed_expression != nullptr) {
         const char *variable_text = gtk_editable_get_text(GTK_EDITABLE (variable_entry)); 
@@ -255,7 +247,7 @@ void on_taylor_button_clicked(GtkButton *button, gpointer user_data) {
     }
 }
 
-// Function to solve the equation using Newton's method
+
 void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
     const char *input_text = gtk_editable_get_text(GTK_EDITABLE (entry));
     std::string input(input_text);
@@ -266,7 +258,7 @@ void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
     const char *initial_guess_text = gtk_editable_get_text(GTK_EDITABLE (initial_guess_entry));
     double initial_guess = std::stod(initial_guess_text);
 
-    Variable::variables[variable] = new Constant(0); // Initialize variable
+    Variable::variables[variable] = new Constant(0); 
 
     if (parsed_expression != nullptr) {
         delete parsed_expression;
@@ -274,7 +266,7 @@ void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
     parsed_expression = parse_expression(input);
 
     if (parsed_expression) {
-        const Expression* root = NewtonMethod::Newton_root(parsed_expression, variable, initial_guess); // Use correct namespace
+        const Expression* root = NewtonMethod::Newton_root(parsed_expression, variable, initial_guess);
         if (root) {
             std::string output = "Root found: " + root->to_string();
             gtk_label_set_text(output_label, output.c_str());

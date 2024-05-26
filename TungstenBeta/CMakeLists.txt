@@ -6,10 +6,20 @@ project(${project})
 set(CMAKE_CXX_STANDARD 17)
 
 set(${project}_SOURCES
-        TungstenBeta.cpp)
+        TungstenBeta.cpp
+        operators.cpp
+        ElementaryFunctions.cpp
+        Constant.cpp
+        Variable.cpp
+        Methods.cpp)
 
 set(${project}_HEADERS
-        TungstenBeta.h)
+        TungstenBeta.h 
+        operators.h 
+        ElementaryFunctions.h 
+        Constant.h 
+        Variable.h 
+        Methods.h)
 
 set(${project}_SOURCE_LIST
         ${${project}_SOURCES}
