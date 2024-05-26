@@ -1,7 +1,6 @@
 #ifndef TUNGSTENBETA_H
 #define TUNGSTENBETA_H
 
-
 #include "Expression.h"
 #include "Constant.h"
 #include "Variable.h"

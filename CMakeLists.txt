@@ -20,8 +20,6 @@ pkg_check_modules(GTK4 REQUIRED gtk4)
 include_directories(${GTK4_INCLUDE_DIRS})
 link_directories(${GTK4_LIB_DIRS}) 
 
-# Add additional definitions if necessary (from GTK4_CFLAGS_OTHER)
-# add_definitions(${GTK4_CFLAGS_OTHER})
 
 # Build the executable
 add_executable(TungstenBetaDebug 
