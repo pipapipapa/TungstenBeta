@@ -30,49 +30,52 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
     std::stack<const Expression*> expressionStack;
     while (!rpn.empty()) {
         std::string token = rpn.front();
+        std::cout << token << " ";
         rpn.pop();
-        if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) {
+
+        // Handle numbers enclosed in parentheses
+        if (token.front() == '(' && token.back() == ')') {
+            // Extract the number from the parentheses
+            std::string number = token.substr(1, token.length() - 2);
+
+            // If it's a valid number, create a Constant expression
+            if (std::isdigit(number[0]) || (number[0] == '-' && number.length() > 1 && std::isdigit(number[1]))) {
+                expressionStack.push(new Constant(std::stoll(number)));
+            } else {
+                return nullptr; // Invalid expression
+            }
+        } else if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) {
             // Number
             expressionStack.push(new Constant(std::stoll(token)));
-        } 
-        else if (token == "e") {
+        } else if (token == "e") {
             expressionStack.push(Constant::e);
-        } 
-        else if (token == "pi") {
+        } else if (token == "pi") {
             expressionStack.push(Constant::pi);
-        } 
-        else if (token == "sin") {
+        } else if (token == "sin" || token == "cos" || token == "tan" || token == "sqrt" || token == "ln" || token == "lg") {
+            if (expressionStack.empty()) {
+                return nullptr;
+            }
             const Expression* operand = expressionStack.top();
             expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Sin(operand));
-        } 
-        else if (token == "cos") {
-            const Expression* operand = expressionStack.top();
-            expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Cos(operand));
-        } 
-        else if (token == "tan") {
-            const Expression* operand = expressionStack.top();
-            expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Tan(operand));
-        } 
-        else if (token == "sqrt") {
-            const Expression* operand = expressionStack.top();
-            expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Power(operand, new operators::Fraction(Constant::ONE, new Constant(2))));
-        } 
-        else if (token == "ln") {
-            const Expression* operand = expressionStack.top();
-            expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Log(Constant::e, operand));
-        } 
-        else if (token == "lg") {
-            const Expression* operand = expressionStack.top();
-            expressionStack.pop();
-            expressionStack.push(new ElementaryFunctions::Log(new Constant(10), operand));
-        } 
-        else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
-            // Operator
+
+            if (token == "sin") {
+                expressionStack.push(new ElementaryFunctions::Sin(operand));
+            } else if (token == "cos") {
+                expressionStack.push(new ElementaryFunctions::Cos(operand));
+            } else if (token == "tan") {
+                expressionStack.push(new ElementaryFunctions::Tan(operand));
+            } else if (token == "sqrt") {
+                expressionStack.push(new ElementaryFunctions::Power(operand, new operators::Fraction(Constant::ONE, new Constant(2))));
+            } else if (token == "ln") {
+                expressionStack.push(new ElementaryFunctions::Log(Constant::e, operand));
+            } else if (token == "lg") {
+                expressionStack.push(new ElementaryFunctions::Log(new Constant(10), operand));
+            } 
+        } else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
+            // Binary Operator
+            if (expressionStack.size() < 2) {
+                return nullptr;
+            }
             const Expression* rhs = expressionStack.top();
             expressionStack.pop();
             const Expression* lhs = expressionStack.top();
@@ -90,28 +93,26 @@ const Expression* construct_expression_from_rpn(std::queue<std::string>& rpn) {
             }
             else if (token == "*") {
                 expressionStack.push(new operators::Product({lhs, rhs}));
-            } 
-            else if (token == "-") {
+            } else if (token == "-") {
                 expressionStack.push(new operators::Sum({lhs, new operators::Product({new Constant(-1), rhs})}));
-            }
-            else if (token == "+") {
+            } else if (token == "+") {
                 expressionStack.push(new operators::Sum({lhs, rhs}));
             }
-        } 
-        else {
+        } else {
             // Variable
             expressionStack.push(new Variable(token));
         }
     }
 
-    if (expressionStack.empty()) {
-        return nullptr;
+    if (expressionStack.size() != 1) {
+        return nullptr; // Invalid RPN expression
     }
 
     return expressionStack.top();
 }
 
 const Expression* parse_expression(const std::string& input) {
+    std::cout << input << "\n";
     std::istringstream iss(input);
     std::stack<std::string> operatorStack;
     std::queue<std::string> outputQueue;
@@ -119,45 +120,40 @@ const Expression* parse_expression(const std::string& input) {
         {"^", 1},
         {"*", 2}, {"/", 2},
         {"+", 3}, {"-", 3},
+        {"=", 4}
     };
 
     std::string token;
     while (iss >> token) {
-        if (std::isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && std::isdigit(token[1]))) { // Number
-            outputQueue.push(token);
-        } else if (token == "(") {
+        if (token == "(") {
             operatorStack.push(token);
-        } else if (token == ")") {
+        } 
+        else if (token == ")") {
             while (!operatorStack.empty() && operatorStack.top() != "(") {
                 outputQueue.push(operatorStack.top());
                 operatorStack.pop();
             }
-            if (!operatorStack.empty() && operatorStack.top() == "(") {
-                operatorStack.pop();
-            } else {
-                return nullptr; 
+            if (operatorStack.empty() || operatorStack.top() != "(") {
+                return nullptr;
             }
-        } else if (operatorPrecedence.find(token) != operatorPrecedence.end()) {
-            while (!operatorStack.empty() && operatorPrecedence[token] >= operatorPrecedence[operatorStack.top()] && operatorStack.top() != "(") {
+            operatorStack.pop();
+        } 
+        else if (operatorPrecedence.find(token) != operatorPrecedence.end()) { 
+            while (!operatorStack.empty() && operatorPrecedence[operatorStack.top()] < operatorPrecedence[token]) {
                 outputQueue.push(operatorStack.top());
                 operatorStack.pop();
             }
             operatorStack.push(token);
-        } else {
-            if (token == "e" || token == "pi") { 
-                outputQueue.push(token); // constants
-            } else if (token == "sin" || token == "cos" || token == "tan" || token == "sqrt" || token == "ln" || token == "log") {
-                // Function
-                operatorStack.push(token);
-            } else {
-                outputQueue.push(token); // variable
-            }
+        } 
+        else {
+            outputQueue.push(token);
         }
     }
 
+
     while (!operatorStack.empty()) {
         if (operatorStack.top() == "(" || operatorStack.top() == ")") {
-            return nullptr;
+            return nullptr; // Mismatched parentheses
         }
         outputQueue.push(operatorStack.top());
         operatorStack.pop();
@@ -276,6 +272,8 @@ void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
     const char *initial_guess_text = gtk_editable_get_text(GTK_EDITABLE (initial_guess_entry));
     double initial_guess = std::stod(initial_guess_text);
 
+    std::cout << variable << "\n";
+
     Variable::variables[variable] = new Constant(0); 
 
     if (parsed_expression != nullptr) {
@@ -285,14 +283,16 @@ void on_newton_button_clicked(GtkButton *button, gpointer user_data) {
 
     if (parsed_expression) {
         const Expression* root = NewtonMethod::Newton_root(parsed_expression, variable, initial_guess);
-        if (root) {
+        if (root != nullptr) {
             std::string output = "Root found: " + root->to_string();
             gtk_label_set_text(output_label, output.c_str());
             delete root;
-        } else {
+        }
+        else {
             gtk_label_set_text(output_label, "Newton's method failed to converge.");
         }
-    } else {
+    }
+    else {
         gtk_label_set_text(output_label, "Invalid expression");
     }
 }

@@ -58,28 +58,31 @@ const Expression* Taylor_series(const Expression* f, const std::string& variable
 }
 
 const Expression* NewtonMethod::Newton_root(const Expression* func, const std::string variable, double initial_guess = 1.0, double tolerance, int max_iterations) {
-    std::cout<<func->to_string() << "\n";
+    std::cout << "var: " << variable << "\n";
+    std::cout<< "expr: " << func->to_string() << " : " << hasVariables(func) << "\n";
     Variable::variables[variable] = double_to_fraction(initial_guess); // Set initial guess
     for (int i = 0; i < max_iterations; ++i) {
-    double f_x = func->calculate();
-    const Expression* derivative = func->complex_derivative(variable);
-    double f_prime_x = derivative->calculate();
-    delete derivative; 
-    if (std::abs(f_prime_x) < 1e-12) {
-        return nullptr; 
-    }
-    double new_guess = initial_guess - (f_x / f_prime_x);
-    if (std::abs(new_guess - initial_guess) < tolerance) {
-        return double_to_fraction(new_guess);
-    }
-    initial_guess = new_guess;
-    Variable::variables[variable] = new Constant(initial_guess); 
+        double f_x = func->calculate();
+        const Expression* derivative = func->complex_derivative(variable);
+        std::cout << "der: " << derivative->to_string() << "\n";
+        double f_prime_x = derivative->calculate();
+        delete derivative; 
+        if (std::abs(f_prime_x) < 1e-12) {
+            return nullptr; 
+        }
+        double new_guess = initial_guess - (f_x / f_prime_x);
+        if (std::abs(new_guess - initial_guess) < tolerance) {
+            return double_to_fraction(new_guess);
+        }
+        initial_guess = new_guess;
+        Variable::variables[variable] = new Constant(initial_guess); 
     }
     return nullptr; 
 }
 
 bool hasVariables(const Expression* expr){
     if (typeid(*expr) == typeid(Variable)){
+        std::cout << "hasVar - " << expr->to_string() << "  ";
         return true;
     }
     else if (typeid(*expr) == typeid(operators::Sum)){
