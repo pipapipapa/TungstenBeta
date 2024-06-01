@@ -3,14 +3,15 @@
 
 #include "Expression.h"
 
-namespace operators{
-    class Sum : public Expression{
+namespace operators {
+    class Sum : public Expression {
     private:
         std::vector<const Expression*> terms_;
 
     public:
         Sum(std::vector<const Expression*>&& terms);
         ~Sum();
+
         std::vector<const Expression*> get_terms() const { return terms_; };
 
         double calculate() const override;
@@ -19,15 +20,15 @@ namespace operators{
         const Expression* plug_variable(const std::string& variable) const override;
         const Expression* simplify() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-
-    class Product : public Expression{
+    class Product : public Expression {
     private:
         std::vector<const Expression*> factors_;
 
     public:
-        //Product(std::vector<const Expression*>&& factors);
         Product(std::vector<const Expression*> factors);
         ~Product();
 
@@ -39,10 +40,11 @@ namespace operators{
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-
-    class Fraction : public Expression{
+    class Fraction : public Expression {
     private:
         const Expression* dividend_;
         const Expression* divisor_;
@@ -60,6 +62,8 @@ namespace operators{
         const Expression* complex_derivative(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 }
 

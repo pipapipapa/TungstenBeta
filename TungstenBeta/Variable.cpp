@@ -1,50 +1,49 @@
 #include "Variable.h"
 #include "Constant.h"
 
-
-// Variable
+// Список(словарь) всех переменных и их значений
 std::unordered_map<std::string, const Expression*> Variable::variables;
 
-Variable::Variable(const std::string& name){
+Variable::Variable(const std::string& name) {
     name_ = name;
 }
 
-double Variable::calculate() const{
-    auto it = Variable::variables.find(name_);
-    if (it != variables.end()){
-        return it->second->calculate();
+double Variable::calculate() const {
+    if (variables.find(name_) != variables.end()) {
+        return variables[name_]->calculate();
     }
-    else{
-        return 0;
+    return 0;
+}
+
+const Expression* Variable::plug_variable(const std::string& variable) const {
+    if (variable == name_) {
+        return this;
+    }
+    else {
+        return new Constant(0);
     }
 }
 
-const Expression* Variable::complex_derivative(const std::string& variable) const{
-    if (variable == name_){
+const Expression* Variable::complex_derivative(const std::string& variable) const {
+    if (variable == name_) {
         return Constant::ONE;
-    } 
-    else{
+    } else {
         return Constant::ZERO;
     }
 }
 
-const Expression* Variable::plug_variable(const std::string& variable) const{
-    if (variable == name_){
-        return Variable::variables[name_];
-    } 
-    else{
-        return this;
-    }
-}
-
-const Expression* Variable::copy() const{
-    return new Variable(name_);
-}
-
-const Expression* Variable::simplify() const{
+const Expression* Variable::simplify() const {
     return this;
 }
 
-std::string Variable::to_string() const{
+const Expression* Variable::copy() const {
+    return new Variable(name_);
+}
+
+std::string Variable::to_string() const {
     return name_;
+}
+
+void Variable::accept(ExpressionVisitor* visitor) {
+    visitor->visitVariable(this);
 }

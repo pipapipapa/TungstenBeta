@@ -3,7 +3,7 @@
 
 #include "Expression.h"
 
-class Variable : public Expression{
+class Variable : public Expression {
 public:
     // Список(словарь) всех переменных и их значений
     static std::unordered_map<std::string, const Expression*> variables;
@@ -20,9 +20,10 @@ public:
     const Expression* copy() const override;
     std::string to_string() const override;
 
-    private:
+    void accept(ExpressionVisitor* visitor) override;
+
+private:
     std::string name_;
 };
-
 
 #endif // VARIABLE_H

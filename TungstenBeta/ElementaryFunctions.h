@@ -3,8 +3,8 @@
 
 #include "Expression.h"
 
-namespace ElementaryFunctions{
-    class ElementaryFunction : public Expression{
+namespace ElementaryFunctions {
+    class ElementaryFunction : public Expression {
     protected:
         const Expression* input_;
 
@@ -16,10 +16,11 @@ namespace ElementaryFunctions{
         virtual const Expression* get_input() const = 0;
 
         const Expression* complex_derivative(const std::string& variable) const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-
-    class Power : public ElementaryFunction{
+    class Power : public ElementaryFunction {
     private:
         const Expression* base_;
         const Expression* power_;
@@ -39,10 +40,11 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-
-    class Exp : public ElementaryFunction{
+    class Exp : public ElementaryFunction {
     private:
         const Expression* power_;
         const Expression* base_;
@@ -62,10 +64,11 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-
-    class Log : public ElementaryFunction{
+    class Log : public ElementaryFunction {
     private:
         const Expression* base_;
         const Expression* arg_;
@@ -75,7 +78,6 @@ namespace ElementaryFunctions{
         const Expression* get_base() const { return base_; };
         const Expression* get_arg() const { return arg_; };
 
-
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
         const Expression* simplify() const override;
@@ -86,9 +88,11 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-    class Sin : public ElementaryFunction{
+    class Sin : public ElementaryFunction {
     private:
         const Expression* arg_;
 
@@ -96,7 +100,6 @@ namespace ElementaryFunctions{
         Sin(const Expression* arg);
         const Expression* get_arg() const { return arg_; };
 
-
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
         const Expression* simplify() const override;
@@ -107,9 +110,11 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-    class Cos : public ElementaryFunction{
+    class Cos : public ElementaryFunction {
     private:
         const Expression* arg_;
 
@@ -117,7 +122,6 @@ namespace ElementaryFunctions{
         Cos(const Expression* arg);
         const Expression* get_arg() const { return arg_; };
 
-
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
         const Expression* simplify() const override;
@@ -128,9 +132,11 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-    class Tan : public ElementaryFunction{
+    class Tan : public ElementaryFunction {
     private:
         const Expression* arg_;
 
@@ -138,7 +144,6 @@ namespace ElementaryFunctions{
         Tan(const Expression* arg);
         const Expression* get_arg() const { return arg_; };
 
-
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
         const Expression* simplify() const override;
@@ -149,9 +154,11 @@ namespace ElementaryFunctions{
         const Expression* plug_variable(const std::string& variable) const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 
-    class Cot : public ElementaryFunction{
+    class Cot : public ElementaryFunction {
     private:
         const Expression* arg_;
 
@@ -159,7 +166,6 @@ namespace ElementaryFunctions{
         Cot(const Expression* arg);
         const Expression* get_arg() const { return arg_; };
 
-
         // elementary function
         const Expression* derivative(const std::string& variable) const override;
         const Expression* simplify() const override;
@@ -170,6 +176,8 @@ namespace ElementaryFunctions{
         double calculate() const override;
         const Expression* copy() const override;
         std::string to_string() const override;
+
+        void accept(ExpressionVisitor* visitor) override;
     };
 };
 
